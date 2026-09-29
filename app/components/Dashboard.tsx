@@ -32,13 +32,15 @@ export function Dashboard({ result }: { result: DashboardData }) {
         Refresh analysis
       </s-button>
       <div className="health-dashboard" aria-busy={loading}>
-        <s-paragraph>Store Health &amp; Growth Dashboard</s-paragraph>
-        <div role="status" aria-live="polite">
-          {loading
-            ? "Reading your Shopify catalog… Previous results remain visible while refreshing."
-            : result.ok
-              ? `Analysis complete: ${result.health.analyzedCount} products checked.`
-              : "Catalog analysis unavailable."}
+        <div className="health-page-intro">
+          <s-paragraph>Store Health &amp; Growth Dashboard</s-paragraph>
+          <div role="status" aria-live="polite">
+            {loading
+              ? "Refreshing catalog…"
+              : result.ok
+                ? `Analysis complete: ${result.health.analyzedCount} products checked.`
+                : "Catalog analysis unavailable."}
+          </div>
         </div>
         {result.ok === false ? (
           <s-banner heading="Your catalog could not be loaded" tone="critical">
@@ -65,38 +67,46 @@ export function Dashboard({ result }: { result: DashboardData }) {
             />
             {result.health.analyzedCount === 0 ? (
               <s-section heading="Your catalog is ready for its first product">
-                <s-paragraph>
-                  Add a product in Shopify, then refresh StorePulse to see real
-                  catalog health insights.
-                </s-paragraph>
-                <s-button href={`${result.adminBase}/products`} target="_blank">
-                  Open Shopify products
-                </s-button>
+                <div className="health-empty">
+                  <s-paragraph>
+                    Add a product in Shopify, then refresh StorePulse to see
+                    real catalog health insights.
+                  </s-paragraph>
+                  <s-button
+                    href={`${result.adminBase}/products`}
+                    target="_blank"
+                  >
+                    Open Shopify products
+                  </s-button>
+                </div>
               </s-section>
             ) : (
               <>
-                <s-box padding="base" background="subdued" borderRadius="base">
-                  <s-paragraph>
-                    Inventory coverage:{" "}
-                    {result.health.inventoryCoverage.evaluated} of{" "}
-                    {result.health.inventoryCoverage.total} variants evaluated
-                    across {result.health.inventoryCoverage.products} products.{" "}
-                    {result.health.inventoryCoverage.untracked} untracked;{" "}
-                    {result.health.inventoryCoverage.unknown} unavailable. These
-                    skipped variants receive no inventory penalty.
-                  </s-paragraph>
-                  <s-paragraph color="subdued">
-                    Snapshot completed{" "}
-                    {result.scannedAt.replace("T", " ").slice(0, 19)} UTC.
-                    Refresh to retrieve current Shopify data.
-                  </s-paragraph>
-                </s-box>
                 <NeedsAttention health={result.health} />
                 <ProductHealthTable
                   products={result.health.products}
                   adminBase={result.adminBase}
                 />
               </>
+            )}
+            {result.health.analyzedCount > 0 && (
+              <details className="health-disclosure">
+                <summary>Analysis coverage &amp; last refresh</summary>
+                <s-paragraph>
+                  Inventory coverage:{" "}
+                  {result.health.inventoryCoverage.evaluated} of{" "}
+                  {result.health.inventoryCoverage.total} variants evaluated
+                  across {result.health.inventoryCoverage.products} products.{" "}
+                  {result.health.inventoryCoverage.untracked} untracked;{" "}
+                  {result.health.inventoryCoverage.unknown} unavailable. These
+                  skipped variants receive no inventory penalty.
+                </s-paragraph>
+                <s-paragraph color="subdued">
+                  Snapshot completed{" "}
+                  {result.scannedAt.replace("T", " ").slice(0, 19)} UTC. Refresh
+                  to retrieve current Shopify data.
+                </s-paragraph>
+              </details>
             )}
             <ScoreMethodology />
           </>

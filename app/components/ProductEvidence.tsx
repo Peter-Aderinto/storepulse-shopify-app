@@ -16,26 +16,25 @@ export function ProductEvidence({ analysis }: { analysis: ProductAnalysis }) {
   return (
     <>
       <s-section heading="Content & custom SEO evidence">
-        <s-unordered-list>
-          <s-list-item>
-            Description:{" "}
-            {analysis.completeness.descriptionPresent
-              ? "present"
-              : "missing or empty"}
-            .
-          </s-list-item>
-          <s-list-item>
-            Custom SEO title:{" "}
-            {analysis.completeness.seoTitlePresent ? "present" : "blank"}.
-          </s-list-item>
-          <s-list-item>
-            Custom SEO description:{" "}
-            {analysis.completeness.seoDescriptionPresent ? "present" : "blank"}.
-          </s-list-item>
-        </s-unordered-list>
+        <div className="health-evidence-summary">
+          {[
+            ["Description", analysis.completeness.descriptionPresent],
+            ["Custom SEO title", analysis.completeness.seoTitlePresent],
+            [
+              "Custom SEO description",
+              analysis.completeness.seoDescriptionPresent,
+            ],
+          ].map(([label, present]) => (
+            <div className="health-row-copy" key={String(label)}>
+              <s-text type="strong">{label}</s-text>
+              <s-text color="subdued">
+                {present ? "Present" : "Missing or blank"}
+              </s-text>
+            </div>
+          ))}
+        </div>
         <s-paragraph color="subdued">
-          These checks assess presence, not writing quality or search
-          performance. Blank custom SEO fields may still use Shopify fallback
+          Presence checks only. Blank custom SEO fields may use Shopify fallback
           metadata.
         </s-paragraph>
       </s-section>
@@ -54,14 +53,8 @@ export function ProductEvidence({ analysis }: { analysis: ProductAnalysis }) {
             </s-paragraph>
             <div className="health-image-evidence">
               {analysis.images.slice(0, imageLimit).map((image) => (
-                <s-box
-                  key={image.id}
-                  padding="base"
-                  background="subdued"
-                  borderRadius="base"
-                >
-                  <s-stack direction="block" gap="small">
-                    <s-heading>{image.label}</s-heading>
+                <div className="health-image-item" key={image.id}>
+                  <div className="health-image-preview">
                     {image.url ? (
                       <s-thumbnail
                         src={image.url}
@@ -69,11 +62,12 @@ export function ProductEvidence({ analysis }: { analysis: ProductAnalysis }) {
                         size="large"
                       />
                     ) : (
-                      <s-paragraph>
-                        Preview unavailable or still processing.
-                      </s-paragraph>
+                      <span>Preview unavailable</span>
                     )}
-                    <s-badge tone={image.missingAlt ? "warning" : "success"}>
+                  </div>
+                  <div className="health-image-copy">
+                    <s-heading>{image.label}</s-heading>
+                    <s-badge tone={image.missingAlt ? "warning" : "neutral"}>
                       {image.missingAlt
                         ? "Missing alt text"
                         : "Alt text present"}
@@ -83,8 +77,8 @@ export function ProductEvidence({ analysis }: { analysis: ProductAnalysis }) {
                         ? "No non-empty alt text was returned."
                         : image.altText}
                     </s-paragraph>
-                  </s-stack>
-                </s-box>
+                  </div>
+                </div>
               ))}
             </div>
             {imageLimit < analysis.images.length && (
@@ -95,7 +89,8 @@ export function ProductEvidence({ analysis }: { analysis: ProductAnalysis }) {
             <s-paragraph color="subdued">
               Showing {Math.min(imageLimit, analysis.images.length)} of{" "}
               {analysis.images.length} images. Decorative images may
-              intentionally have empty alt text.
+              intentionally have empty alt text. Previews may be unavailable
+              while images process.
             </s-paragraph>
           </s-stack>
         )}

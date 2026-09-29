@@ -4,7 +4,7 @@ A Shopify merchant app for catalog and product health analysis, built with React
 
 ## Project status
 
-Phase 1 implements a read-only Store Health dashboard using real Shopify catalog data: product health scores, inventory/content/SEO/alt-text checks, attention summaries, searchable product lists, and explicit analysis coverage. Authentication and local session persistence use the official Shopify scaffold. Phase 2 adds individual Product Analysis pages with category scores, image/variant evidence, and prioritized recommendations. Remediation and product-update synchronization remain future work.
+Phase 1 implements a read-only Store Health dashboard using real Shopify catalog data: product health scores, inventory/content/SEO/alt-text checks, attention summaries, searchable product lists, and explicit analysis coverage. Authentication and local session persistence use the official Shopify scaffold. Phase 2 adds individual Product Analysis pages with category scores, image/variant evidence, and prioritized recommendations. Phase 2.5 refines the merchant experience with compact health summaries, responsive product lists, and clearer evidence and recommendations. Remediation and product-update synchronization remain future work.
 
 See [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) for the architecture and eight development phases.
 

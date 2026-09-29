@@ -6,6 +6,17 @@ import "../styles/dashboard.css";
 export type ProductAnalysisData =
   | { ok: true; analysis: ProductAnalysis; adminUrl: string; checkedAt: string }
   | { ok: false; heading: string; message: string; retryable: boolean };
+const WHY = {
+  outOfStock: "These variants cannot be purchased while stock is unavailable.",
+  image: "Images help shoppers understand the product.",
+  description: "Essential details help shoppers make an informed choice.",
+  alt: "Meaningful alt text supports people using screen readers.",
+  backorder: "Orders may need delivery expectations beyond available stock.",
+  seoTitle: "A custom title gives you control over search presentation.",
+  seoDescription:
+    "A custom description gives you control over search presentation.",
+  lowStock: "Limited stock may affect an upcoming promotion.",
+};
 const points = (value: number) => Number(value.toFixed(2)).toString();
 export function ProductAnalysisPage({
   result,
@@ -16,13 +27,21 @@ export function ProductAnalysisPage({
   const navigation = useNavigation();
   const loading = revalidator.state !== "idle" || navigation.state !== "idle";
   return (
-    <s-page heading="Product analysis" inlineSize="large">
+    <s-page
+      heading={
+        result.ok
+          ? result.analysis.health.title || "Untitled product"
+          : "Product analysis"
+      }
+      inlineSize="large"
+    >
       <s-link slot="breadcrumb-actions" href="/app">
         Back to Store health
       </s-link>
       {(result.ok === true || result.retryable) && (
         <s-button
           slot="primary-action"
+          variant="primary"
           loading={loading}
           disabled={loading}
           onClick={() => revalidator.revalidate()}
@@ -44,18 +63,26 @@ export function ProductAnalysisPage({
           </s-banner>
         ) : (
           <>
-            <s-section
-              heading={result.analysis.health.title || "Untitled product"}
-            >
+            <s-section heading="Product health">
               <s-stack direction="block" gap="base">
-                <s-stack direction="inline" gap="small">
-                  <s-badge>
-                    {result.analysis.health.status
-                      .toLowerCase()
-                      .replaceAll("_", " ")}
-                  </s-badge>
-                  <s-text>Handle: {result.analysis.health.handle}</s-text>
-                </s-stack>
+                <s-heading>
+                  {result.analysis.health.title || "Untitled product"}
+                </s-heading>
+                <div className="health-identity">
+                  <s-stack direction="inline" gap="small">
+                    <s-badge>
+                      {result.analysis.health.status
+                        .toLowerCase()
+                        .replaceAll("_", " ")}
+                    </s-badge>
+                    <s-text color="subdued">
+                      {result.analysis.health.handle}
+                    </s-text>
+                  </s-stack>
+                  <s-link href={result.adminUrl} target="_blank">
+                    Open in Shopify Admin (new tab)
+                  </s-link>
+                </div>
                 <div className="health-hero">
                   <div
                     className="health-score"
@@ -67,56 +94,61 @@ export function ProductAnalysisPage({
                   <s-stack direction="block" gap="small">
                     <s-heading>Product Health Score</s-heading>
                     <s-paragraph>
-                      {result.analysis.health.issues.length} issue types
-                      detected. Evaluated weight:{" "}
-                      {result.analysis.health.evaluatedWeight}/100.
+                      {result.analysis.health.issues.length} issue types ·
+                      Coverage {result.analysis.health.evaluatedWeight}/100
                     </s-paragraph>
                     <s-paragraph color="subdued">
-                      A StorePulse diagnostic score, not an official Shopify
-                      score. Excluded checks do not lower the score.
+                      Excluded checks do not lower the score.
                     </s-paragraph>
-                    <s-link href={result.adminUrl} target="_blank">
-                      Open product in Shopify Admin (new tab)
-                    </s-link>
+                    <s-paragraph color="subdued">
+                      StorePulse metric, not an official Shopify score.
+                    </s-paragraph>
                   </s-stack>
                 </div>
               </s-stack>
             </s-section>
-            <s-section heading="Why this product received its score">
-              <div className="health-metrics">
+            <s-section heading="Health breakdown">
+              <div className="health-rows">
                 {result.analysis.categories.map((category) => (
-                  <s-box
-                    key={category.key}
-                    padding="base"
-                    background="subdued"
-                    borderRadius="base"
-                  >
-                    <s-stack direction="block" gap="small">
-                      <s-heading>{category.label}</s-heading>
+                  <div className="health-breakdown-row" key={category.key}>
+                    <s-heading>{category.label}</s-heading>
+                    <span className="health-points">
+                      {category.earned === null
+                        ? "Not evaluated"
+                        : `${points(category.earned)} / ${category.weight} points`}
+                    </span>
+                    <div className="health-row-copy">
                       <s-text type="strong">
                         {category.earned === null
-                          ? "Not evaluated"
-                          : `${points(category.earned)} / ${category.weight} points`}
+                          ? "Excluded from score"
+                          : category.earned === category.weight
+                            ? "Complete"
+                            : "Needs review"}
                       </s-text>
-                      <s-paragraph>{category.explanation}</s-paragraph>
-                    </s-stack>
-                  </s-box>
+                      <s-paragraph color="subdued">
+                        {category.explanation}
+                      </s-paragraph>
+                    </div>
+                  </div>
                 ))}
               </div>
-              <s-paragraph color="subdued">
-                Overall score = earned points ÷ evaluated weight × 100, rounded
-                to a whole number. Category points are shown to two decimal
-                places; calculations use full precision. SEO combines the
-                existing 10-point title and 10-point description checks.
-              </s-paragraph>
+              <details className="health-disclosure">
+                <summary>How category points become your score</summary>
+                <s-paragraph color="subdued">
+                  Overall score = earned points ÷ evaluated weight × 100,
+                  rounded to a whole number. Category points are shown to two
+                  decimal places; calculations use full precision. SEO combines
+                  the existing 10-point title and 10-point description checks.
+                </s-paragraph>
+              </details>
             </s-section>
             <s-section heading="Issue summary">
               {result.analysis.health.issues.length ? (
-                <s-unordered-list>
+                <s-stack direction="inline" gap="small">
                   {result.analysis.health.issues.map((issue) => (
-                    <s-list-item key={issue.code}>{issue.label}</s-list-item>
+                    <s-badge key={issue.code}>{issue.label}</s-badge>
                   ))}
-                </s-unordered-list>
+                </s-stack>
               ) : (
                 <s-paragraph>
                   No issues found in the evaluated checks. This is not a
@@ -130,32 +162,28 @@ export function ProductAnalysisPage({
             />
             <s-section heading="Prioritized recommendations">
               {result.analysis.recommendations.length ? (
-                <s-stack direction="block" gap="base">
+                <div className="health-rows">
                   {result.analysis.recommendations.map((recommendation) => (
-                    <s-box
-                      key={recommendation.code}
-                      padding="base"
-                      background="subdued"
-                      borderRadius="base"
-                    >
-                      <s-stack direction="block" gap="small">
-                        <s-badge
-                          tone={
-                            recommendation.priority === "High"
-                              ? "critical"
-                              : recommendation.priority === "Medium"
-                                ? "warning"
-                                : "info"
-                          }
-                        >
-                          {recommendation.priority} priority
-                        </s-badge>
+                    <div className="health-row" key={recommendation.code}>
+                      <div className="health-row-copy">
                         <s-text type="strong">{recommendation.evidence}</s-text>
+                        <s-paragraph color="subdued">
+                          {WHY[recommendation.code]}
+                        </s-paragraph>
                         <s-paragraph>{recommendation.action}</s-paragraph>
-                      </s-stack>
-                    </s-box>
+                      </div>
+                      <s-badge
+                        tone={
+                          recommendation.priority === "High"
+                            ? "warning"
+                            : "neutral"
+                        }
+                      >
+                        {recommendation.priority} priority
+                      </s-badge>
+                    </div>
                   ))}
-                </s-stack>
+                </div>
               ) : (
                 <s-paragraph>
                   No recommendations for the available checks. Review the
@@ -163,15 +191,13 @@ export function ProductAnalysisPage({
                 </s-paragraph>
               )}
               <s-paragraph color="subdued">
-                Recommendations follow fixed rules, not AI. StorePulse makes no
-                changes to your product. Review and apply any edits in Shopify
+                Rule-based guidance. Review and make any changes in Shopify
                 Admin.
               </s-paragraph>
             </s-section>
             <s-paragraph color="subdued">
               Checked {result.checkedAt.replace("T", " ").slice(0, 19)} UTC.
-              This page fetches fresh data independently of the dashboard, so
-              scores can change after catalog edits.
+              Fresh product snapshot. Dashboard scores may differ after edits.
             </s-paragraph>
           </>
         )}

@@ -26,29 +26,27 @@ export function HealthOverview({
     {
       title: "Low stock",
       value: health.counts.lowStock,
-      detail: "Products with a tracked variant at 1–5 units",
+      detail: "Tracked variants at 1–5 units",
     },
     {
       title: "Out of stock",
       value: health.counts.outOfStock,
-      detail: "Products with a sold-out variant; overselling off",
+      detail: "Sold-out variants; selling blocked",
     },
     {
       title: "Content / SEO",
       value: health.counts.contentSeo,
-      detail: "Products with content or custom SEO gaps",
+      detail: "Content or custom SEO gaps",
     },
     {
       title: "Accessibility",
       value: health.counts.alt,
-      detail: "Products with image alt-text gaps",
+      detail: "Images missing alt text",
     },
   ];
   return (
     <>
-      <s-section
-        heading={limited ? "Analyzed catalog health" : "Store Health Score"}
-      >
+      <s-section heading={limited ? "Analyzed catalog health" : "Store health"}>
         <div className="health-hero">
           <div
             className="health-score"
@@ -65,31 +63,31 @@ export function HealthOverview({
             <s-heading>{label}</s-heading>
             <s-paragraph>
               {health.productsWithIssues
-                ? `${health.productsWithIssues} of ${health.analyzedCount} analyzed products have opportunities to improve.`
+                ? `${health.productsWithIssues} of ${health.analyzedCount} analyzed products need attention.`
                 : health.analyzedCount
                   ? "No issues found in the checks performed."
                   : "Your health summary will appear when your catalog has products."}
             </s-paragraph>
             <s-paragraph color="subdued">
-              A StorePulse metric, not an official Shopify score. An
-              equal-weight average of analyzed product scores across all product
-              statuses.
+              StorePulse metric, not an official Shopify score.
             </s-paragraph>
           </s-stack>
         </div>
+        <hr className="health-rule" />
+        <div className="health-metrics">
+          {metrics.map((metric) => (
+            <div className="health-metric" key={metric.title}>
+              <p className="metric-label">{metric.title}</p>
+              <p className="metric-value">{metric.value}</p>
+              <p className="health-muted">{metric.detail}</p>
+            </div>
+          ))}
+        </div>
+        <p className="health-muted">
+          Issue counts cover {health.analyzedCount} analyzed products.
+          Categories can overlap.
+        </p>
       </s-section>
-      <div className="health-metrics">
-        {metrics.map((metric) => (
-          <s-section key={metric.title} heading={metric.title}>
-            <p className="metric-value">{metric.value}</p>
-            <s-paragraph color="subdued">{metric.detail}</s-paragraph>
-          </s-section>
-        ))}
-      </div>
-      <s-paragraph color="subdued">
-        Issue metrics are calculated by StorePulse for {health.analyzedCount}{" "}
-        analyzed products. A product can appear in more than one metric.
-      </s-paragraph>
     </>
   );
 }
@@ -99,67 +97,80 @@ export function NeedsAttention({ health }: { health: CatalogHealth }) {
     {
       count: health.counts.outOfStock,
       label: "products have out-of-stock variants",
+      priority: "High",
       action: "Review tracked stock before promoting these variants.",
     },
     {
       count: health.counts.lowStock,
       label: "products have low inventory",
+      priority: "Low",
       action: "Check replenishment for variants at 1–5 units.",
     },
     {
       count: health.counts.backorder,
       label: "products have variants selling without stock",
+      priority: "Medium",
       action:
         "Confirm that continued selling and delivery expectations are intentional.",
     },
     {
       count: health.counts.description,
       label: "products need a description",
+      priority: "Medium",
       action: "Explain the product, its benefits, and essential details.",
     },
     {
       count: health.counts.image,
       label: "products need an image",
+      priority: "High",
       action: "Add clear imagery to help shoppers evaluate the product.",
     },
     {
       count: health.counts.alt,
       label: "products have images without alt text",
+      priority: "Medium",
       action:
         "Describe meaningful product images for people using screen readers.",
     },
     {
       count: health.counts.seo,
       label: "products have custom SEO fields to review",
+      priority: "Medium",
       action:
         "Consider an intentional search title and description. Shopify may already provide fallback text.",
     },
-  ].filter((item) => item.count > 0);
+  ]
+    .filter((item) => item.count > 0)
+    .sort(
+      (a, b) =>
+        ["High", "Medium", "Low"].indexOf(a.priority) -
+        ["High", "Medium", "Low"].indexOf(b.priority),
+    );
   return (
     <s-section heading="Needs attention">
       {items.length ? (
-        <s-stack direction="block" gap="base">
+        <div className="health-rows">
           {items.map((item) => (
-            <s-box
-              key={item.label}
-              padding="base"
-              background="subdued"
-              borderRadius="base"
-            >
-              <s-paragraph>
-                <s-text type="strong">
-                  {item.count}{" "}
-                  {item.count === 1
-                    ? item.label
-                        .replace(/^products have /, "product has ")
-                        .replace(/^products need /, "product needs ")
-                    : item.label}
-                </s-text>
-              </s-paragraph>
-              <s-paragraph color="subdued">{item.action}</s-paragraph>
-            </s-box>
+            <div className="health-row" key={item.label}>
+              <div className="health-row-copy">
+                <s-paragraph>
+                  <s-text type="strong">
+                    {item.count}{" "}
+                    {item.count === 1
+                      ? item.label
+                          .replace(/^products have /, "product has ")
+                          .replace(/^products need /, "product needs ")
+                      : item.label}
+                  </s-text>
+                </s-paragraph>
+                <s-paragraph color="subdued">{item.action}</s-paragraph>
+              </div>
+              <s-badge tone={item.priority === "High" ? "warning" : "neutral"}>
+                {item.priority} priority
+              </s-badge>
+            </div>
           ))}
-        </s-stack>
+        </div>
       ) : (
         <s-paragraph>
           No issues detected in the available checks. This does not assess sales

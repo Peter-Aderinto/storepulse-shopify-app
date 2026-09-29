@@ -1,6 +1,7 @@
 export function ScoreMethodology() {
   return (
-    <s-section heading="How your score works">
+    <details className="health-disclosure">
+      <summary>How your score works</summary>
       <s-stack direction="block" gap="base">
         <s-paragraph>
           StorePulse checks catalog completeness and inventory signals. It does
@@ -40,6 +41,6 @@ export function ScoreMethodology() {
           check types, not every affected image or variant.
         </s-paragraph>
       </s-stack>
-    </s-section>
+    </details>
   );
 }

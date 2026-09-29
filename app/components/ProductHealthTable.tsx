@@ -31,44 +31,43 @@ export function ProductHealthTable({
     <s-section heading="Product health">
       <s-stack direction="block" gap="base">
         <s-paragraph color="subdued">
-          Lowest scores first. Titles and statuses come from Shopify; scores and
-          issue indicators are calculated by StorePulse. Select a product to see
-          its StorePulse analysis; the separate Admin link opens Shopify.
+          Lowest scores first. Select a product for its StorePulse analysis.
         </s-paragraph>
-        <s-search-field
-          label="Search analyzed products"
-          placeholder="Search by product title or handle"
-          value={query}
-          onInput={(event) => {
-            setQuery(event.currentTarget.value);
-            setPage(0);
-          }}
-        />
-        <s-checkbox
-          label="Only products with issues"
-          checked={onlyIssues}
-          onChange={(event) => {
-            setOnlyIssues(event.currentTarget.checked);
-            setPage(0);
-          }}
-        />
+        <div className="health-controls">
+          <s-search-field
+            label="Search analyzed products"
+            placeholder="Search by product title or handle"
+            value={query}
+            onInput={(event) => {
+              setQuery(event.currentTarget.value);
+              setPage(0);
+            }}
+          />
+          <s-checkbox
+            label="Only products with issues"
+            checked={onlyIssues}
+            onChange={(event) => {
+              setOnlyIssues(event.currentTarget.checked);
+              setPage(0);
+            }}
+          />
+        </div>
         {visible.length ? (
           <s-table variant="auto">
             <s-table-header-row>
               <s-table-header listSlot="primary">Product</s-table-header>
-              <s-table-header listSlot="inline">Shopify status</s-table-header>
+              <s-table-header listSlot="inline">Status</s-table-header>
               <s-table-header listSlot="labeled" format="numeric">
-                Health score
+                Health
               </s-table-header>
-              <s-table-header listSlot="secondary">
-                Issues &amp; coverage
-              </s-table-header>
+              <s-table-header listSlot="secondary">Issues</s-table-header>
+              <s-table-header listSlot="labeled">Action</s-table-header>
             </s-table-header-row>
             <s-table-body>
               {visible.map((product) => (
                 <s-table-row key={product.id}>
                   <s-table-cell>
-                    <s-stack direction="inline" gap="small" alignItems="center">
+                    <div className="health-product">
                       {product.image?.url && (
                         <s-thumbnail
                           src={product.image.url}
@@ -76,19 +75,17 @@ export function ProductHealthTable({
                           size="small"
                         />
                       )}
-                      <s-link
-                        href={`/app/products/${product.id.split("/").pop()}`}
-                      >
-                        {product.title || "Untitled product"}
-                      </s-link>
-                      <s-link
-                        href={`${adminBase}/products/${product.id.split("/").pop()}`}
-                        target="_blank"
-                        accessibilityLabel={`Open ${product.title || "product"} in Shopify Admin (new tab)`}
-                      >
-                        Shopify Admin
-                      </s-link>
-                    </s-stack>
+                      <div className="health-product-copy">
+                        <span className="health-product-name">
+                          <s-link
+                            href={`/app/products/${product.id.split("/").pop()}`}
+                          >
+                            {product.title || "Untitled product"}
+                          </s-link>
+                        </span>
+                        <span className="health-muted">View analysis</span>
+                      </div>
+                    </div>
                   </s-table-cell>
                   <s-table-cell>
                     <s-badge>
@@ -96,47 +93,55 @@ export function ProductHealthTable({
                     </s-badge>
                   </s-table-cell>
                   <s-table-cell>
-                    <s-badge
-                      tone={
-                        product.score >= 85
-                          ? "success"
-                          : product.score >= 60
-                            ? "warning"
-                            : "critical"
-                      }
-                    >
-                      {product.score} / 100
-                    </s-badge>
+                    <span className="health-table-score">
+                      {product.score} <span>/ 100</span>
+                    </span>
                   </s-table-cell>
                   <s-table-cell>
-                    <s-stack direction="block" gap="small">
-                      <s-text type="strong">
-                        {product.issues.length} issue{" "}
-                        {product.issues.length === 1 ? "type" : "types"}
-                      </s-text>
-                      {product.issues.length > 0 && (
+                    <div className="health-row-copy">
+                      <details className="health-disclosure">
+                        <summary>
+                          {product.issues.length
+                            ? `${product.issues.length} issue ${product.issues.length === 1 ? "type" : "types"}`
+                            : "No issues"}
+                        </summary>
                         <s-paragraph>
-                          {product.issues
-                            .map((issue) => issue.label)
-                            .join(" · ")}
+                          {product.issues.length
+                            ? product.issues
+                                .map((issue) => issue.label)
+                                .join(" · ")
+                            : "No issues in evaluated checks."}
                         </s-paragraph>
-                      )}
-                      <s-paragraph color="subdued">
-                        Inventory checked: {product.inventory.evaluated}/
-                        {product.inventory.total} variants. Score coverage:{" "}
-                        {product.evaluatedWeight}/100 weight.
-                      </s-paragraph>
-                    </s-stack>
+                        <s-paragraph>
+                          Inventory checked: {product.inventory.evaluated}/
+                          {product.inventory.total} variants.
+                        </s-paragraph>
+                      </details>
+                      <p className="health-muted">
+                        Coverage {product.evaluatedWeight}/100
+                      </p>
+                    </div>
+                  </s-table-cell>
+                  <s-table-cell>
+                    <s-link
+                      href={`${adminBase}/products/${product.id.split("/").pop()}`}
+                      target="_blank"
+                      accessibilityLabel={`Open ${product.title || "product"} in Shopify Admin (new tab)`}
+                    >
+                      Shopify Admin
+                    </s-link>
                   </s-table-cell>
                 </s-table-row>
               ))}
             </s-table-body>
           </s-table>
         ) : (
-          <s-paragraph>
-            No analyzed products match your filters. Try another search or show
-            all products.
-          </s-paragraph>
+          <div className="health-empty">
+            <s-heading>No matching products</s-heading>
+            <s-paragraph>
+              Try a different search or turn off the issues-only filter.
+            </s-paragraph>
+          </div>
         )}
         <div className="health-table-footer">
           <s-paragraph>

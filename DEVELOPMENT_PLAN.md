@@ -35,6 +35,12 @@ Implemented server-side product/media/variant pagination, normalization, issue d
 
 Product titles now open `/app/products/:productId`. An authenticated, variable-bound single-product query retrieves fresh data and exhausts media and variant pagination. The page explains five scoring categories using the unchanged Phase 1 engine, shows image/variant/completeness evidence, and provides deterministic prioritized recommendations. Excluded categories display “Not evaluated”. Invalid links, missing products, and API errors have safe states. Shopify Admin links remain available; no remediation actions are implemented.
 
+### Phase 2.5: UI/UX polish — implemented
+
+Refined the existing Polaris experience with restrained typography, consistent spacing, neutral borders, and compact status presentation. The dashboard groups score and metrics into one overview, prioritizes attention rows, and separates StorePulse analysis links from Shopify Admin actions. The product list retains search/filter/pagination and reveals detailed findings on demand.
+
+Product Analysis now leads with product identity, uses compact category rows with explicit status, consistent image previews, and recommendations explaining the issue, relevance, and next step. Scoring methodology and scan coverage remain available in keyboard-accessible disclosures. Responsive layouts cover wide, laptop, tablet, and mobile widths; native Polaris tables switch to lists at narrow widths. No scoring, query, authentication, persistence, recommendation rules, dependencies, or scopes were changed.
+
 ### Phase 3: Admin API mutations/remediation actions
 
 Add narrowly scoped merchant-approved corrections through authenticated server actions. Validate inputs, handle GraphQL user errors, prevent duplicate submissions, and record outcomes. Preview material edits before applying them and refresh analysis afterward.
@@ -102,3 +108,10 @@ Shopify template-maintenance workflows and upstream contribution metadata are ex
 - The new `StorePulseProduct` query validates against July 2026; it uses the same fields as the catalog query and adds no scopes. Polaris components pass toolkit validation.
 - Live development-store retrieval confirms dashboard/detail score agreement and full nested pagination. Server rendering passes for the real product, invalid link, missing product, and API-error states. Rendered output contains no session credentials.
 - Browser visual and keyboard acceptance remains manual. Follow the product-analysis checks in `docs/SCORING.md`.
+
+## Phase 2.5 validation
+
+- All 69 existing tests pass; typecheck, lint, and production build pass. All six changed Polaris components pass Shopify toolkit validation. Existing React Router future-flag advisories remain.
+- An isolated Chromium preview rendered the actual React components with Polaris and synthetic test products. Dashboard, product analysis, empty catalog, dashboard error, and product error states passed overflow checks at 1440, 1024, 768, and 375 pixels (20 combinations).
+- Browser interaction checks passed for search, no-results, issues-only filtering, pagination, product/Admin link destinations, keyboard disclosure activation and visible focus, refresh layout stability, image/variant expansion, and unavailable-image fallback. No browser runtime errors were observed.
+- This is component-level browser validation, not authenticated Shopify Admin acceptance. Review both pages inside the installed app, including narrow embedded widths, navigation, live refresh, and keyboard use. Temporary preview fixtures and browser tooling remain outside the repository.

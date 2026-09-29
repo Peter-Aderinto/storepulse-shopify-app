@@ -4,7 +4,7 @@ A Shopify merchant app for catalog and product health analysis, built with React
 
 ## Project status
 
-The initial Shopify scaffold is complete. Development-store connectivity, embedded Admin loading, authentication, and local session persistence have been verified. Product retrieval, dashboards, scoring, and remediation are planned; they are not implemented yet.
+Phase 1 implements a read-only Store Health dashboard using real Shopify catalog data: product health scores, inventory/content/SEO/alt-text checks, attention summaries, searchable product lists, and explicit analysis coverage. Authentication and local session persistence use the official Shopify scaffold. Remediation, product detail pages, and product-update synchronization remain future work.
 
 See [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) for the architecture and eight development phases.
 
@@ -28,17 +28,18 @@ npm run dev
 
 Link your own Shopify app and select your development store when prompted. Complete browser authentication and installation through Shopify. The CLI supplies runtime configuration and a development tunnel; do not commit credentials or session databases. Shopify CLI is installed locally, so a global installation is unnecessary.
 
-The default template includes a **Generate a product** demo action that writes to the connected store. It is not a StorePulse feature.
+The starter mutation demo has been removed. Phase 1 does not change merchant catalog data. See [score methodology and limitations](docs/SCORING.md) for weights, the 5-unit low-stock threshold, SEO fallback handling, and the 250-product scan cap.
 
 ## Validation
 
 ```bash
+npm test
 npm run typecheck
 npm run lint
 npm run build
 ```
 
-All three checks passed for the scaffold. Database migrations were also verified. The initial dependency audit reported 25 high-severity findings; remediation is tracked separately from feature development.
+The project includes focused tests for analysis, inventory uncertainty, pagination, and API failures. Database migrations were also verified. The initial dependency audit reported 25 high-severity findings; remediation is tracked separately from feature development.
 
 ## Publication and data handling
 

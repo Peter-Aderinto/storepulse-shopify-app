@@ -2,7 +2,7 @@
 
 ## Scope and current baseline
 
-StorePulse is a full-stack Shopify merchant app for understanding catalog and product health. This setup establishes the official Shopify React Router TypeScript scaffold only. All phases below are future work; the template's demo screens and sample mutations are not StorePulse features.
+StorePulse is a full-stack Shopify merchant app for understanding catalog and product health. Phase 1 implements an authenticated, read-only catalog health dashboard on the official Shopify React Router TypeScript scaffold. Later phases remain planned. See [scoring methodology](docs/SCORING.md) for exact rules, data sources, scan limits, and validation.
 
 - Development environment: WSL Ubuntu.
 - Runtime: Node 24.15.0 and npm 11.12.1; no runtime upgrade required.
@@ -25,15 +25,15 @@ Route future product webhooks through authenticated handlers with deduplication,
 
 Use Shopify's merchant UI components and App Bridge for an embedded experience. Provide keyboard access, clear score explanations, and accessible feedback. Review the template's demo scopes and resources before real merchant use; request only the scopes needed by each implemented phase.
 
-## Future phases
+## Development phases
 
-### Phase 1: GraphQL product retrieval + Store Health dashboard
+### Phase 1: GraphQL product retrieval + Store Health dashboard — implemented
 
-Build authenticated, paginated product/variant retrieval through the GraphQL Admin API. Identify required inventory permissions and fields. Display real catalog totals and initial health summaries, with rate-limit handling and shop isolation. Confirm results against a development-store catalog.
+Implemented server-side product/media/variant pagination, normalization, issue detection, deterministic scoring, aggregation, and a Polaris dashboard. The dashboard includes coverage disclosure, partial-catalog limits, safe errors, empty states, refresh feedback, search, filters, and a sorted product-health list. Focused Node-native tests cover scoring and API transport behavior. Authentication and Prisma session storage are preserved; the template mutation demo is removed.
 
 ### Phase 2: Product Health scoring and product analysis pages
 
-Define documented, versioned scoring rules and weights for inventory, SEO/content, and accessibility-related catalog checks. Add product detail analysis with explanations, evidence, unknown-data handling, and prioritized recommendations. Test scoring as pure logic.
+Extend the Phase 1 scoring baseline into individual product analysis pages with detailed evidence and prioritized recommendations. Refine versioned rules with merchant feedback and preserve test coverage.
 
 ### Phase 3: Admin API mutations/remediation actions
 
@@ -65,22 +65,32 @@ From the project directory:
 
 - `npm ci`: reinstall dependencies from the lockfile.
 - `npm run setup`: generate Prisma Client and apply local database migrations.
+- `npm test`: run focused analysis and catalog retrieval tests.
 - `npm run typecheck`: generate React Router types and run TypeScript checks.
 - `npm run lint`: run the template ESLint checks.
 - `npm run build`: create the production build.
 - `npm run shopify -- version`: verify the project-local Shopify CLI.
 - `npm run dev`: start Shopify development using an authorized development store. Complete browser authentication and installation when prompted.
 
-Do not run the template's demo product creation actions against merchant data as part of environment validation. Do not commit `.env` files, access tokens, session databases, or generated build artifacts. No StorePulse feature implementation or production deployment belongs in this scaffolding task.
+Do not commit `.env` files, access tokens, session databases, or generated build artifacts. Production deployment, mutation/remediation actions, and product-update synchronization remain outside Phase 1.
 
 ## Setup verification
 
-The baseline uses Shopify/shopify-app-template-react-router (`main-cli`). Dependencies, Prisma generation and migration, TypeScript checks, lint, and production build passed. The embedded template loaded inside Shopify Admin and an authenticated session was persisted locally. No StorePulse analysis features have been implemented.
+The baseline uses Shopify/shopify-app-template-react-router (`main-cli`). Dependencies, Prisma generation and migration, TypeScript checks, lint, and production build passed. The embedded template loaded inside Shopify Admin and an authenticated session was persisted locally. Phase 1 now adds the StorePulse catalog health dashboard.
 
 The SQLite setup initially required creating an empty local database file before applying the template migration. Local database contents and authentication sessions are excluded from Git.
 
-The committed Shopify configuration contains a public app client ID, not an authentication secret. Credentials are supplied at runtime; template scopes and July 2026 API configuration remain unchanged. Developers using their own app should run `npm run config:link` before starting development.
+The committed Shopify configuration contains a public app client ID, not an authentication secret. Credentials are supplied at runtime; existing scopes and July 2026 API configuration remain unchanged. Developers using their own app should run `npm run config:link` before starting development.
 
 The dependency audit at setup reported 25 high-severity findings and no critical findings. Suggested direct-package fixes included major-version changes or downgrades. These findings remain documented for separate review; no forced upgrades were applied.
 
 Shopify template-maintenance workflows and upstream contribution metadata are excluded from this app repository. The original Shopify license notice is retained.
+
+## Phase 1 validation
+
+- 41 Node-native tests pass for scoring, coverage, normalization, nested pagination, scan limits, and safe API/authentication errors.
+- Typecheck, lint, and production build pass. Existing React Router future-flag advisories remain.
+- All three GraphQL operations validate against the July 2026 schema. Polaris dashboard components pass the Shopify toolkit component checks.
+- Real development-store retrieval succeeded, including nested variant pagination and correct exclusion of untracked inventory. The existing SDK refreshed an expired offline session successfully.
+- Server rendering passed for real catalog data, empty catalog, and API-error states; the development tunnel responded successfully. No credentials were returned in rendered dashboard data.
+- Browser visual, keyboard, filtering, refresh, and product-link checks remain part of manual acceptance; see `docs/SCORING.md`.

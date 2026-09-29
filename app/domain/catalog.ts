@@ -48,6 +48,10 @@ export interface ProductHealth {
   score: number;
   evaluatedWeight: number;
   issues: Issue[];
+  checks: Record<
+    keyof typeof SCORE_WEIGHTS,
+    { credit: number | null; weight: number; earned: number | null }
+  >;
   inventory: {
     evaluated: number;
     total: number;
@@ -61,6 +65,29 @@ export interface ProductHealth {
 }
 export const hasText = (text: string | null | undefined) =>
   Boolean(text?.replace(/[\s\u200B-\u200D\uFEFF]/g, ""));
+
+export type InventoryState =
+  "untracked" | "unknown" | "out" | "low" | "backorder" | "healthy";
+export function evaluateVariant(variant: Product["variants"][number]): {
+  state: InventoryState;
+  credit: number | null;
+} {
+  if (variant.tracked === false) return { state: "untracked", credit: null };
+  if (
+    variant.tracked !== true ||
+    variant.quantity === null ||
+    !Number.isFinite(variant.quantity) ||
+    !["DENY", "CONTINUE"].includes(variant.policy)
+  )
+    return { state: "unknown", credit: null };
+  if (variant.quantity <= 0)
+    return variant.policy === "CONTINUE"
+      ? { state: "backorder", credit: 0.5 }
+      : { state: "out", credit: 0 };
+  return variant.quantity <= LOW_STOCK_THRESHOLD
+    ? { state: "low", credit: 0.5 }
+    : { state: "healthy", credit: 1 };
+}
 
 export function analyzeProduct(product: Product): ProductHealth {
   const issues: Issue[] = [];
@@ -97,29 +124,12 @@ export function analyzeProduct(product: Product): ProductHealth {
   };
   let inventoryPoints = 0;
   for (const variant of product.variants) {
-    if (variant.tracked === false) {
-      inventory.untracked++;
-      continue;
+    const result = evaluateVariant(variant);
+    if (result.state !== "healthy") inventory[result.state]++;
+    if (result.credit !== null) {
+      inventory.evaluated++;
+      inventoryPoints += result.credit;
     }
-    if (
-      variant.tracked !== true ||
-      variant.quantity === null ||
-      !Number.isFinite(variant.quantity) ||
-      !["DENY", "CONTINUE"].includes(variant.policy)
-    ) {
-      inventory.unknown++;
-      continue;
-    }
-    inventory.evaluated++;
-    if (variant.quantity <= 0) {
-      if (variant.policy === "CONTINUE") {
-        inventory.backorder++;
-        inventoryPoints += 0.5;
-      } else inventory.out++;
-    } else if (variant.quantity <= LOW_STOCK_THRESHOLD) {
-      inventory.low++;
-      inventoryPoints += 0.5;
-    } else inventoryPoints++;
   }
   inventory.entirelyOut =
     inventory.total > 0 && inventory.out === inventory.total;
@@ -179,6 +189,15 @@ export function analyzeProduct(product: Product): ProductHealth {
     image: product.images[0] ?? null,
     score: Math.round((100 * earned) / evaluatedWeight),
     evaluatedWeight,
+    checks: Object.fromEntries(
+      Object.entries(checks).map(([key, credit]) => {
+        const weight = SCORE_WEIGHTS[key as keyof typeof SCORE_WEIGHTS];
+        return [
+          key,
+          { credit, weight, earned: credit === null ? null : weight * credit },
+        ];
+      }),
+    ) as ProductHealth["checks"],
     issues,
     inventory,
   };

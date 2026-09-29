@@ -1,3 +1,4 @@
+import { toProductGid } from "../domain/product-analysis.ts";
 import type { Product } from "../domain/catalog.ts";
 
 export const MAX_PRODUCTS = 250;
@@ -107,14 +108,11 @@ function nextCursor<T>(connection: Connection<T>, previous: string | null) {
   return cursor;
 }
 
-export async function fetchCatalog(
-  graphql: GraphqlClient,
-  requestSignal?: AbortSignal,
-) {
+function createQuery(graphql: GraphqlClient, requestSignal?: AbortSignal) {
   const signal = requestSignal
     ? AbortSignal.any([requestSignal, AbortSignal.timeout(TIMEOUT_MS)])
     : AbortSignal.timeout(TIMEOUT_MS);
-  async function query<T>(
+  return async function query<T>(
     document: string,
     variables: Record<string, unknown>,
   ): Promise<T> {
@@ -144,7 +142,7 @@ export async function fetchCatalog(
         throw error;
       if (signal.aborted) throw new CatalogError("timeout");
       // Shopify's client throws on GraphQL failures; inspect only error codes, never return raw errors/tokens.
-      const failure = error as {
+      const failure = (error ?? {}) as {
         response?: { status?: number; code?: number };
         body?: {
           errors?: { graphQLErrors?: { extensions?: { code?: string } }[] };
@@ -167,7 +165,46 @@ export async function fetchCatalog(
         throw new CatalogError("throttled");
       throw new CatalogError("unavailable");
     }
+  };
+}
+type Query = ReturnType<typeof createQuery>;
+async function hydrateProduct(product: ApiProduct, query: Query) {
+  validateConnection(product.media);
+  validateConnection(product.variants);
+  let mediaAfter = nextCursor(product.media, null);
+  const mediaCursors = new Set<string>();
+  while (mediaAfter) {
+    if (mediaCursors.has(mediaAfter)) throw new CatalogError("invalid");
+    mediaCursors.add(mediaAfter);
+    const more: { product: { media: Connection<Media> } | null } = await query(
+      MEDIA_QUERY,
+      { id: product.id, after: mediaAfter },
+    );
+    if (!more.product) throw new CatalogError("invalid");
+    const connection = validateConnection(more.product.media);
+    product.media.nodes.push(...connection.nodes);
+    mediaAfter = nextCursor(connection, mediaAfter);
   }
+  let variantAfter = nextCursor(product.variants, null);
+  const variantCursors = new Set<string>();
+  while (variantAfter) {
+    if (variantCursors.has(variantAfter)) throw new CatalogError("invalid");
+    variantCursors.add(variantAfter);
+    const more: { product: { variants: Connection<Variant> } | null } =
+      await query(VARIANTS_QUERY, { id: product.id, after: variantAfter });
+    if (!more.product) throw new CatalogError("invalid");
+    const connection = validateConnection(more.product.variants);
+    product.variants.nodes.push(...connection.nodes);
+    variantAfter = nextCursor(connection, variantAfter);
+  }
+  return normalizeProduct(product);
+}
+
+export async function fetchCatalog(
+  graphql: GraphqlClient,
+  requestSignal?: AbortSignal,
+) {
+  const query = createQuery(graphql, requestSignal);
   const products: Product[] = [];
   let after: string | null = null;
   let total: { count: number; precision: string } | null = null;
@@ -191,33 +228,7 @@ export async function fetchCatalog(
     for (const product of data.products.nodes) {
       if (seen.has(product.id)) throw new CatalogError("invalid");
       seen.add(product.id);
-      validateConnection(product.media);
-      validateConnection(product.variants);
-      let mediaAfter = nextCursor(product.media, null);
-      const mediaCursors = new Set<string>();
-      while (mediaAfter) {
-        if (mediaCursors.has(mediaAfter)) throw new CatalogError("invalid");
-        mediaCursors.add(mediaAfter);
-        const more: { product: { media: Connection<Media> } | null } =
-          await query(MEDIA_QUERY, { id: product.id, after: mediaAfter });
-        if (!more.product) throw new CatalogError("invalid");
-        const connection = validateConnection(more.product.media);
-        product.media.nodes.push(...connection.nodes);
-        mediaAfter = nextCursor(connection, mediaAfter);
-      }
-      let variantAfter = nextCursor(product.variants, null);
-      const variantCursors = new Set<string>();
-      while (variantAfter) {
-        if (variantCursors.has(variantAfter)) throw new CatalogError("invalid");
-        variantCursors.add(variantAfter);
-        const more: { product: { variants: Connection<Variant> } | null } =
-          await query(VARIANTS_QUERY, { id: product.id, after: variantAfter });
-        if (!more.product) throw new CatalogError("invalid");
-        const connection = validateConnection(more.product.variants);
-        product.variants.nodes.push(...connection.nodes);
-        variantAfter = nextCursor(connection, variantAfter);
-      }
-      products.push(normalizeProduct(product));
+      products.push(await hydrateProduct(product, query));
     }
     after = nextCursor(data.products, after);
     hasMore = after !== null;
@@ -228,4 +239,30 @@ export async function fetchCatalog(
     limited: hasMore,
     scannedAt: new Date().toISOString(),
   };
+}
+
+export const PRODUCT_QUERY = `#graphql
+  query StorePulseProduct($id: ID!) {
+    product(id: $id) {
+      id title handle status description
+      seo { title description }
+      media(first: 10) { nodes { ${MEDIA_FIELDS} } pageInfo { hasNextPage endCursor } }
+      variants(first: 10) { nodes { ${VARIANT_FIELDS} } pageInfo { hasNextPage endCursor } }
+    }
+  }`;
+export async function fetchProduct(
+  graphql: GraphqlClient,
+  productId: string,
+  requestSignal?: AbortSignal,
+) {
+  const id = toProductGid(productId);
+  if (!id) throw new CatalogError("invalid");
+  const query = createQuery(graphql, requestSignal);
+  const result = await query<{ product: ApiProduct | null }>(PRODUCT_QUERY, {
+    id,
+  });
+  if (result.product === null) return null;
+  if (!result.product || result.product.id !== id)
+    throw new CatalogError("invalid");
+  return hydrateProduct(result.product, query);
 }

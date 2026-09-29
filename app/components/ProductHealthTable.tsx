@@ -32,8 +32,8 @@ export function ProductHealthTable({
       <s-stack direction="block" gap="base">
         <s-paragraph color="subdued">
           Lowest scores first. Titles and statuses come from Shopify; scores and
-          issue indicators are calculated by StorePulse. Product links open
-          Shopify Admin in a new tab.
+          issue indicators are calculated by StorePulse. Select a product to see
+          its StorePulse analysis; the separate Admin link opens Shopify.
         </s-paragraph>
         <s-search-field
           label="Search analyzed products"
@@ -77,10 +77,16 @@ export function ProductHealthTable({
                         />
                       )}
                       <s-link
-                        href={`${adminBase}/products/${product.id.split("/").pop()}`}
-                        target="_blank"
+                        href={`/app/products/${product.id.split("/").pop()}`}
                       >
                         {product.title || "Untitled product"}
+                      </s-link>
+                      <s-link
+                        href={`${adminBase}/products/${product.id.split("/").pop()}`}
+                        target="_blank"
+                        accessibilityLabel={`Open ${product.title || "product"} in Shopify Admin (new tab)`}
+                      >
+                        Shopify Admin
                       </s-link>
                     </s-stack>
                   </s-table-cell>

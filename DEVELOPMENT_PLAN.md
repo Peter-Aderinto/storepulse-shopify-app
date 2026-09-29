@@ -2,7 +2,7 @@
 
 ## Scope and current baseline
 
-StorePulse is a full-stack Shopify merchant app for understanding catalog and product health. Phase 1 implements an authenticated, read-only catalog health dashboard on the official Shopify React Router TypeScript scaffold. Later phases remain planned. See [scoring methodology](docs/SCORING.md) for exact rules, data sources, scan limits, and validation.
+StorePulse is a full-stack Shopify merchant app for understanding catalog and product health. Phases 1 and 2 implement an authenticated, read-only catalog health dashboard and individual product analysis on the official Shopify React Router TypeScript scaffold. Phases 3–8 remain planned. See [scoring methodology](docs/SCORING.md) for exact rules, data sources, scan limits, and validation.
 
 - Development environment: WSL Ubuntu.
 - Runtime: Node 24.15.0 and npm 11.12.1; no runtime upgrade required.
@@ -31,9 +31,9 @@ Use Shopify's merchant UI components and App Bridge for an embedded experience. 
 
 Implemented server-side product/media/variant pagination, normalization, issue detection, deterministic scoring, aggregation, and a Polaris dashboard. The dashboard includes coverage disclosure, partial-catalog limits, safe errors, empty states, refresh feedback, search, filters, and a sorted product-health list. Focused Node-native tests cover scoring and API transport behavior. Authentication and Prisma session storage are preserved; the template mutation demo is removed.
 
-### Phase 2: Product Health scoring and product analysis pages
+### Phase 2: Product Health scoring and product analysis pages — implemented
 
-Extend the Phase 1 scoring baseline into individual product analysis pages with detailed evidence and prioritized recommendations. Refine versioned rules with merchant feedback and preserve test coverage.
+Product titles now open `/app/products/:productId`. An authenticated, variable-bound single-product query retrieves fresh data and exhausts media and variant pagination. The page explains five scoring categories using the unchanged Phase 1 engine, shows image/variant/completeness evidence, and provides deterministic prioritized recommendations. Excluded categories display “Not evaluated”. Invalid links, missing products, and API errors have safe states. Shopify Admin links remain available; no remediation actions are implemented.
 
 ### Phase 3: Admin API mutations/remediation actions
 
@@ -72,7 +72,7 @@ From the project directory:
 - `npm run shopify -- version`: verify the project-local Shopify CLI.
 - `npm run dev`: start Shopify development using an authorized development store. Complete browser authentication and installation when prompted.
 
-Do not commit `.env` files, access tokens, session databases, or generated build artifacts. Production deployment, mutation/remediation actions, and product-update synchronization remain outside Phase 1.
+Do not commit `.env` files, access tokens, session databases, or generated build artifacts. Production deployment, mutation/remediation actions, and product-update synchronization remain outside Phases 1 and 2.
 
 ## Setup verification
 
@@ -94,3 +94,11 @@ Shopify template-maintenance workflows and upstream contribution metadata are ex
 - Real development-store retrieval succeeded, including nested variant pagination and correct exclusion of untracked inventory. The existing SDK refreshed an expired offline session successfully.
 - Server rendering passed for real catalog data, empty catalog, and API-error states; the development tunnel responded successfully. No credentials were returned in rendered dashboard data.
 - Browser visual, keyboard, filtering, refresh, and product-link checks remain part of manual acceptance; see `docs/SCORING.md`.
+
+## Phase 2 validation
+
+- All 69 tests pass: the original 41 plus 28 product-analysis and single-product retrieval tests.
+- Typecheck, lint, and production build pass; existing React Router future-flag advisories remain.
+- The new `StorePulseProduct` query validates against July 2026; it uses the same fields as the catalog query and adds no scopes. Polaris components pass toolkit validation.
+- Live development-store retrieval confirms dashboard/detail score agreement and full nested pagination. Server rendering passes for the real product, invalid link, missing product, and API-error states. Rendered output contains no session credentials.
+- Browser visual and keyboard acceptance remains manual. Follow the product-analysis checks in `docs/SCORING.md`.

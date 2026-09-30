@@ -813,3 +813,57 @@
 .health-recommendation-row[data-tone] {
   border-inline-start: 3px solid var(--health-color);
 }
+
+/* Phase 3: explicit, per-image editing only. */
+.health-image-item {
+  flex-wrap: wrap;
+  align-content: start;
+}
+.health-image-copy {
+  flex: 1;
+}
+.sp-alt-editor {
+  flex-basis: 100%;
+  min-width: 0;
+}
+.sp-alt-editor form {
+  display: grid;
+  gap: 8px;
+}
+.sp-alt-editor label {
+  font-size: 12px;
+  font-weight: 600;
+}
+.sp-alt-editor textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  resize: vertical;
+  border: 1px solid var(--sp-line);
+  border-radius: 5px;
+  padding: 8px;
+  font: inherit;
+  color: var(--sp-ink);
+  background: white;
+}
+.sp-alt-editor textarea:focus-visible {
+  outline: 2px solid var(--sp-accent);
+  outline-offset: 2px;
+}
+.sp-alt-editor textarea[aria-invalid="true"] {
+  border-color: #b42318;
+}
+.sp-alt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.sp-alt-feedback {
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 6px;
+}
+.sp-alt-feedback[role="alert"] {
+  color: #b42318;
+}

@@ -1,4 +1,9 @@
-import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
+import { handleAltTextAction } from "../services/alt-text.server";
+import type {
+  ActionFunctionArgs,
+  HeadersFunction,
+  LoaderFunctionArgs,
+} from "react-router";
 import { data, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
@@ -79,3 +84,13 @@ export const headers: HeadersFunction = (args) => {
   headers.set("Cache-Control", "private, no-store");
   return headers;
 };
+
+export const action = ({ request, params }: ActionFunctionArgs) =>
+  handleAltTextAction(request, params.productId, async (request) => {
+    const { admin, session } = await authenticate.admin(request);
+    return {
+      shop: session.shop,
+      graphql: (query, options) =>
+        admin.graphql(query, { ...options, tries: 1 }),
+    };
+  });

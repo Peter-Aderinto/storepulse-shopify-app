@@ -2,7 +2,7 @@
 
 ## Scope and current baseline
 
-StorePulse is a full-stack Shopify merchant app for understanding catalog and product health. Phases 1 and 2 implement an authenticated, read-only catalog health dashboard and individual product analysis on the official Shopify React Router TypeScript scaffold. Phases 3–8 remain planned. See [scoring methodology](docs/SCORING.md) for exact rules, data sources, scan limits, and validation.
+StorePulse is a full-stack Shopify merchant app for understanding catalog and product health. Phases 1 and 2 implement an authenticated, read-only catalog health dashboard and individual product analysis on the official Shopify React Router TypeScript scaffold. Phase 3 implements merchant-controlled image alt-text remediation; Phases 4–8 remain planned. See [scoring methodology](docs/SCORING.md) for exact rules, data sources, scan limits, and validation.
 
 - Development environment: WSL Ubuntu.
 - Runtime: Node 24.15.0 and npm 11.12.1; no runtime upgrade required.
@@ -33,7 +33,7 @@ Implemented server-side product/media/variant pagination, normalization, issue d
 
 ### Phase 2: Product Health scoring and product analysis pages — implemented
 
-Product titles now open `/app/products/:productId`. An authenticated, variable-bound single-product query retrieves fresh data and exhausts media and variant pagination. The page explains five scoring categories using the unchanged Phase 1 engine, shows image/variant/completeness evidence, and provides deterministic prioritized recommendations. Excluded categories display “Not evaluated”. Invalid links, missing products, and API errors have safe states. Shopify Admin links remain available; no remediation actions are implemented.
+Product titles now open `/app/products/:productId`. An authenticated, variable-bound single-product query retrieves fresh data and exhausts media and variant pagination. The page explains five scoring categories using the unchanged Phase 1 engine, shows image/variant/completeness evidence, and provides deterministic prioritized recommendations. Excluded categories display “Not evaluated”. Invalid links, missing products, and API errors have safe states. Shopify Admin links remain available; Phase 2 itself introduced no write operations.
 
 ### Phase 2.5: UI/UX polish — implemented
 
@@ -41,9 +41,13 @@ Refined the existing Polaris experience with restrained typography, consistent s
 
 Product Analysis now leads with product identity, uses compact category rows with explicit status, consistent image previews, and recommendations explaining the issue, relevance, and next step. Scoring methodology and scan coverage remain available in keyboard-accessible disclosures. Responsive layouts cover wide, laptop, tablet, and mobile widths; native Polaris tables switch to lists at narrow widths. No scoring, query, authentication, persistence, recommendation rules, dependencies, or scopes were changed.
 
-### Phase 3: Admin API mutations/remediation actions
+### Phase 3: Admin API mutations/remediation actions — implemented, pending merchant UI acceptance
 
-Add narrowly scoped merchant-approved corrections through authenticated server actions. Validate inputs, handle GraphQL user errors, prevent duplicate submissions, and record outcomes. Preview material edits before applying them and refresh analysis afterward.
+The first write is a single image alt-text update, explicitly submitted by a merchant from Product Analysis. An authenticated server action validates product/media IDs, trims and validates up to 512 characters, verifies product-image membership and file readiness, and rejects stale edits. Shopify's supported July 2026 `fileUpdate` mutation requires `write_files`; existing scopes are retained. No AI, bulk writes, SEO edits, inventory edits, or background changes are included.
+
+Structured feedback handles Shopify user errors, permissions, throttling, network failures, and incomplete responses. Authentication redirects are preserved. No automatic mutation retry is performed. After a save, authoritative product retrieval and loader revalidation reuse the unchanged scoring engine. Dashboard navigation/refresh retrieves fresh catalog data. Duplicate submission is guarded in the UI and by a process-local shop/file lock. Outcomes are returned to the merchant; persistent remediation history and distributed locking remain future work.
+
+See [remediation documentation](docs/REMEDIATION.md) for reads versus writes, shared-file effects, security, limitations, and acceptance steps.
 
 ### Phase 4: Product-update webhook synchronization
 
@@ -86,7 +90,7 @@ The baseline uses Shopify/shopify-app-template-react-router (`main-cli`). Depend
 
 The SQLite setup initially required creating an empty local database file before applying the template migration. Local database contents and authentication sessions are excluded from Git.
 
-The committed Shopify configuration contains a public app client ID, not an authentication secret. Credentials are supplied at runtime; existing scopes and July 2026 API configuration remain unchanged. Developers using their own app should run `npm run config:link` before starting development.
+The committed Shopify configuration contains a public app client ID, not an authentication secret. Credentials are supplied at runtime; the July 2026 API configuration is retained. Phase 3 adds only `write_files` to the existing scopes. Developers using their own app should run `npm run config:link` before starting development.
 
 The dependency audit at setup reported 25 high-severity findings and no critical findings. Suggested direct-package fixes included major-version changes or downgrades. These findings remain documented for separate review; no forced upgrades were applied.
 
@@ -115,3 +119,11 @@ Shopify template-maintenance workflows and upstream contribution metadata are ex
 - An isolated Chromium preview rendered the actual React components with Polaris and synthetic test products. Dashboard, product analysis, empty catalog, dashboard error, and product error states passed overflow checks at 1440, 1024, 768, and 375 pixels (20 combinations).
 - Browser interaction checks passed for search, no-results, issues-only filtering, pagination, product/Admin link destinations, keyboard disclosure activation and visible focus, refresh layout stability, image/variant expansion, and unavailable-image fallback. No browser runtime errors were observed.
 - This is component-level browser validation, not authenticated Shopify Admin acceptance. Review both pages inside the installed app, including narrow embedded widths, navigation, live refresh, and keyboard use. Temporary preview fixtures and browser tooling remain outside the repository.
+
+## Phase 3 validation
+
+- 101 tests pass: all 69 existing tests plus 32 mocked remediation tests. No automated test calls a live Shopify mutation.
+- Typecheck, lint, and production build pass. Existing React Router future-flag advisories remain. Both new GraphQL operations validate against July 2026, and affected Polaris components pass toolkit checks. The native editor is checked by TypeScript, lint, and browser interaction tests.
+- An isolated Chromium preview with synthetic data passes blank validation, retained failed input, duplicate submission, refreshed image evidence, edit/cancel, stale-success feedback, and overflow checks at 1280, 768, and 375 pixels.
+- Shopify development preview auto-granted `write_files`; a live read confirms the granted scope. One explicitly authorized live mutation on the fictional VelvetBloom Rose Facial Oil product succeeded: Image 1 changed from empty alt text to a descriptive value, missing-alt images fell from 2 to 1, Accessibility rose from 0/20 to 10/20, and Product Health rose from 40/100 to 50/100. Fresh product and catalog reads confirmed the result; other retrieved fields/products were unchanged. Issue types remained 4 because a second image still lacks alt text; individual issue occurrences fell from 5 to 4. Embedded Admin visual acceptance remains manual.
+- No commit or push is authorized until Peter reviews the workflow in Shopify Admin.

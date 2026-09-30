@@ -204,8 +204,8 @@ export function ProductAnalysisPage({
                 </s-paragraph>
               )}
               <s-paragraph color="subdued">
-                Rule-based guidance. Review and make any changes in Shopify
-                Admin.
+                Rule-based guidance. Edit image alt text above; make other
+                changes in Shopify Admin.
               </s-paragraph>
             </s-section>
             <s-paragraph color="subdued">

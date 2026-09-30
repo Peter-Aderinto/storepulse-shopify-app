@@ -108,7 +108,7 @@ function nextCursor<T>(connection: Connection<T>, previous: string | null) {
   return cursor;
 }
 
-function createQuery(graphql: GraphqlClient, requestSignal?: AbortSignal) {
+export function createQuery(graphql: GraphqlClient, requestSignal?: AbortSignal) {
   const signal = requestSignal
     ? AbortSignal.any([requestSignal, AbortSignal.timeout(TIMEOUT_MS)])
     : AbortSignal.timeout(TIMEOUT_MS);

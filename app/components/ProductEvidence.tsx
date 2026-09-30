@@ -1,3 +1,4 @@
+import { AltTextEditor } from "./AltTextEditor";
 import { useState } from "react";
 import type { ProductAnalysis } from "../domain/product-analysis";
 import type { InventoryState } from "../domain/catalog";
@@ -78,6 +79,12 @@ export function ProductEvidence({ analysis }: { analysis: ProductAnalysis }) {
                         : image.altText}
                     </s-paragraph>
                   </div>
+                  <AltTextEditor
+                    productId={analysis.health.id}
+                    mediaId={image.id}
+                    currentAlt={image.altText}
+                    imageLabel={image.label}
+                  />
                 </div>
               ))}
             </div>

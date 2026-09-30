@@ -1,3 +1,5 @@
+import db from "../db.server";
+import { createProductSyncStore } from "../services/product-sync.server";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { data, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
@@ -32,6 +34,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         total: catalog.total,
         limited: catalog.limited,
         scannedAt: catalog.scannedAt,
+        syncActivity: await createProductSyncStore(db).latest(session.shop),
         adminBase: `https://admin.shopify.com/store/${session.shop.replace(/\.myshopify\.com$/, "")}`,
       },
       { headers: { "Cache-Control": "private, no-store" } },

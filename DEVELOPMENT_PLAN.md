@@ -2,7 +2,7 @@
 
 ## Scope and current baseline
 
-StorePulse is a full-stack Shopify merchant app for understanding catalog and product health. Phases 1 and 2 implement an authenticated, read-only catalog health dashboard and individual product analysis on the official Shopify React Router TypeScript scaffold. Phase 3 implements merchant-controlled image alt-text remediation; Phases 4–8 remain planned. See [scoring methodology](docs/SCORING.md) for exact rules, data sources, scan limits, and validation.
+StorePulse is a full-stack Shopify merchant app for understanding catalog and product health. Phases 1 and 2 implement an authenticated, read-only catalog health dashboard and individual product analysis on the official Shopify React Router TypeScript scaffold. Phase 3 implements merchant-controlled image alt-text remediation; Phase 4 adds authenticated product-update metadata; Phases 5–8 remain planned. See [scoring methodology](docs/SCORING.md) for exact rules, data sources, scan limits, and validation.
 
 - Development environment: WSL Ubuntu.
 - Runtime: Node 24.15.0 and npm 11.12.1; no runtime upgrade required.
@@ -49,9 +49,11 @@ Structured feedback handles Shopify user errors, permissions, throttling, networ
 
 See [remediation documentation](docs/REMEDIATION.md) for reads versus writes, shared-file effects, security, limitations, and acceptance steps.
 
-### Phase 4: Product-update webhook synchronization
+### Phase 4: Product-update webhook synchronization — implemented, pending review
 
-Subscribe to product updates, verify webhook authenticity, and synchronize only the affected shop/product. Make processing idempotent and resilient to duplicates, delays, and out-of-order delivery. Add reconciliation for missed updates and preserve uninstall cleanup.
+App configuration subscribes to `products/update` with a minimal payload. The official Shopify webhook authenticator verifies requests; a short transaction stores shop/product activity metadata and seven-day deduplication keys. Product timestamps never regress on out-of-order delivery. Unknown/uninstalled shops are ignored, database failures return retryable responses, and uninstall atomically removes shop metadata and sessions.
+
+The dashboard exposes a subtle latest-receipt timestamp, explicitly separate from the authoritative analysis snapshot. Product Analysis and remediation remain unchanged. No catalog replica, background queue, browser push, or automatic mutation is introduced. See [synchronization documentation](docs/SYNCHRONIZATION.md) for retention, security, failure handling, and limitations.
 
 ### Phase 5: UI/UX polish, loading, error and empty states
 
@@ -126,4 +128,18 @@ Shopify template-maintenance workflows and upstream contribution metadata are ex
 - Typecheck, lint, and production build pass. Existing React Router future-flag advisories remain. Both new GraphQL operations validate against July 2026, and affected Polaris components pass toolkit checks. The native editor is checked by TypeScript, lint, and browser interaction tests.
 - An isolated Chromium preview with synthetic data passes blank validation, retained failed input, duplicate submission, refreshed image evidence, edit/cancel, stale-success feedback, and overflow checks at 1280, 768, and 375 pixels.
 - Shopify development preview auto-granted `write_files`; a live read confirms the granted scope. One explicitly authorized live mutation on the fictional VelvetBloom Rose Facial Oil product succeeded: Image 1 changed from empty alt text to a descriptive value, missing-alt images fell from 2 to 1, Accessibility rose from 0/20 to 10/20, and Product Health rose from 40/100 to 50/100. Fresh product and catalog reads confirmed the result; other retrieved fields/products were unchanged. Issue types remained 4 because a second image still lacks alt text; individual issue occurrences fell from 5 to 4. Embedded Admin visual acceptance remains manual.
-- No commit or push is authorized until Peter reviews the workflow in Shopify Admin.
+- Phase 3 was subsequently approved and published; see the Phase 4 checkpoint below.
+
+## Phase 4 checkpoint and verification
+
+- Accepted UI commit: `f49e381` (`style: refine StorePulse branding and health colors`).
+- Phase 3 commit and Phase 4 rollback checkpoint: `fbd917a4ddc79fc41e616fe46f269d3beb0d9082` (`feat: add Shopify catalog remediation`). Both were pushed to `origin/main`; the working tree was clean before Phase 4.
+- Phase 4 remains uncommitted for Peter's review.
+
+- All 135 tests pass (101 existing plus 34 Phase 4 tests); typecheck, lint, and production build pass. The additive migration and Prisma schema validate; existing sessions are preserved.
+- Shopify app configuration and the changed Polaris dashboard component pass validation. No new GraphQL operations or scopes were required.
+- An unsigned live endpoint request was rejected with 400; a request with invalid HMAC was rejected with 401. Neither created synchronization metadata.
+- One controlled Phase 4 live alt-text edit on the confirmed fictional VelvetBloom product succeeded. Image 2 already had alt text at preflight, so Accessibility remained 20/20 and Product Health remained 60/100. Fresh catalog/detail reads verified only that image's alt changed among retrieved fields, with other products unchanged.
+- Shopify delivered the real authenticated product-update webhook; exactly one receipt and one product metadata row were recorded. No additional event activity or mutation loop was observed.
+- Isolated Chromium checks using fresh Shopify data pass for dashboard receipt-versus-analysis messaging, refresh/navigation, updated detail evidence, and responsive layouts. This is not a claim of authenticated Shopify Admin browser inspection; Peter's embedded visual review remains manual.
+- Existing React Router future-flag advisories remain; no environment/dependency upgrades were made.

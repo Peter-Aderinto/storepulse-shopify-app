@@ -13,6 +13,7 @@ export type DashboardData =
       limited: boolean;
       scannedAt: string;
       adminBase: string;
+      syncActivity?: { available: boolean; lastReceivedAt: string | null };
     }
   | { ok: false; message: string };
 
@@ -106,6 +107,17 @@ export function Dashboard({ result }: { result: DashboardData }) {
                   to retrieve current Shopify data.
                 </s-paragraph>
               </details>
+            )}
+            {result.syncActivity && (
+              <s-paragraph color="subdued">
+                {!result.syncActivity.available
+                  ? "Product update receipt status is unavailable."
+                  : result.syncActivity.lastReceivedAt
+                    ? `Last product update webhook received: ${result.syncActivity.lastReceivedAt.replace("T", " ").slice(0, 19)} UTC.`
+                    : "No product update webhooks received yet."}{" "}
+                Webhook receipt does not mean the catalog was rescanned. Refresh
+                analysis to retrieve current Shopify data.
+              </s-paragraph>
             )}
             <ScoreMethodology />
           </>

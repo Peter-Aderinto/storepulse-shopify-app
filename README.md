@@ -4,7 +4,7 @@ A Shopify merchant app for catalog and product health analysis, built with React
 
 ## Project status
 
-Phase 1 implements a read-only Store Health dashboard using real Shopify catalog data: product health scores, inventory/content/SEO/alt-text checks, attention summaries, searchable product lists, and explicit analysis coverage. Authentication and local session persistence use the official Shopify scaffold. Phase 2 adds individual Product Analysis pages with category scores, image/variant evidence, and prioritized recommendations. Phase 2.5 refines the merchant experience with compact health summaries, responsive product lists, and clearer evidence and recommendations. Phase 3 adds explicit image alt-text remediation; product-update synchronization remains future work.
+Phase 1 implements a read-only Store Health dashboard using real Shopify catalog data: product health scores, inventory/content/SEO/alt-text checks, attention summaries, searchable product lists, and explicit analysis coverage. Authentication and local session persistence use the official Shopify scaffold. Phase 2 adds individual Product Analysis pages with category scores, image/variant evidence, and prioritized recommendations. Phase 2.5 refines the merchant experience with compact health summaries, responsive product lists, and clearer evidence and recommendations. Phase 3 adds explicit image alt-text remediation; Phase 4 adds authenticated product-update webhook metadata and dashboard activity visibility.
 
 See [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) for the architecture and eight development phases.
 
@@ -44,6 +44,12 @@ Reads retrieve catalog/product evidence and file readiness. Writes update only t
 
 See [remediation architecture, limitations, and manual checks](docs/REMEDIATION.md).
 
+## Product-update synchronization (Phase 4)
+
+Shopify sends `products/update` to the authenticated `/webhooks/products/update` endpoint. StorePulse stores only shop/product identifiers, receipt/update timestamps, and short-lived deduplication keys in Prisma. Shopify remains the source of truth; webhook handling never performs remediation mutations or copies the catalog.
+
+The dashboard shows the last product-update receipt separately from the analysis snapshot. Refresh analysis still retrieves current Shopify data. Apply the additive migration with `npm run setup` before running the updated app. See [synchronization design and limitations](docs/SYNCHRONIZATION.md).
+
 ## Validation
 
 ```bash
@@ -53,7 +59,7 @@ npm run lint
 npm run build
 ```
 
-The project includes 101 focused tests for scoring, category evidence, recommendation priorities, inventory uncertainty, product identifiers, missing products, pagination, API failures, and authenticated alt-text remediation. All mutation tests use mocked APIs and never change store data. Database migrations were also verified. The initial dependency audit reported 25 high-severity findings; remediation is tracked separately from feature development.
+The project includes 135 focused tests for scoring, category evidence, recommendation priorities, inventory uncertainty, product identifiers, missing products, pagination, API failures, and authenticated alt-text remediation, and webhook synchronization. All mutation tests use mocked APIs and never change store data. Database migrations were also verified. The initial dependency audit reported 25 high-severity findings; remediation is tracked separately from feature development.
 
 ## Publication and data handling
 

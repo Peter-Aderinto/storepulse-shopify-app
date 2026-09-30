@@ -2,11 +2,11 @@ import type { ActionFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { createProductSyncStore } from "../services/product-sync.server";
-import { handleAppUninstalled } from "../services/product-webhook.server";
+import { handleProductUpdate } from "../services/product-webhook.server";
 
 export const action = ({ request }: ActionFunctionArgs) =>
-  handleAppUninstalled(
+  handleProductUpdate(
     request,
     authenticate.webhook,
-    createProductSyncStore(db).removeShop,
+    createProductSyncStore(db).record,
   );

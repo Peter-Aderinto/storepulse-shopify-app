@@ -32,3 +32,25 @@ model Session {
   refreshToken        String?
   refreshTokenExpires DateTime?
 }
+
+// App-specific activity metadata only; Shopify remains the catalog source of truth.
+model ProductSync {
+  shop                 String
+  productId            String
+  lastReceivedAt       DateTime
+  lastProductUpdatedAt DateTime?
+  lastWebhookId        String
+
+  @@id([shop, productId])
+  @@index([shop, lastReceivedAt])
+}
+
+// Short-lived deduplication keys, without webhook payloads or credentials.
+model WebhookReceipt {
+  shop       String
+  eventKey   String
+  receivedAt DateTime
+
+  @@id([shop, eventKey])
+  @@index([shop, receivedAt])
+}

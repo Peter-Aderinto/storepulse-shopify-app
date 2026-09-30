@@ -27,9 +27,9 @@ export function ProductEvidence({ analysis }: { analysis: ProductAnalysis }) {
           ].map(([label, present]) => (
             <div className="health-row-copy" key={String(label)}>
               <s-text type="strong">{label}</s-text>
-              <s-text color="subdued">
-                {present ? "Present" : "Missing or blank"}
-              </s-text>
+              <s-badge tone={present ? "success" : "critical"}>
+                {present ? "✓ Present" : "! Missing"}
+              </s-badge>
             </div>
           ))}
         </div>
@@ -67,7 +67,7 @@ export function ProductEvidence({ analysis }: { analysis: ProductAnalysis }) {
                   </div>
                   <div className="health-image-copy">
                     <s-heading>{image.label}</s-heading>
-                    <s-badge tone={image.missingAlt ? "warning" : "neutral"}>
+                    <s-badge tone={image.missingAlt ? "critical" : "success"}>
                       {image.missingAlt
                         ? "Missing alt text"
                         : "Alt text present"}
@@ -130,7 +130,19 @@ export function ProductEvidence({ analysis }: { analysis: ProductAnalysis }) {
                         : (variant.quantity ?? "Unavailable")}
                     </s-table-cell>
                     <s-table-cell>
-                      {INVENTORY_LABELS[variant.state]}
+                      <s-badge
+                        tone={
+                          variant.state === "healthy"
+                            ? "success"
+                            : variant.state === "low" || variant.state === "out"
+                              ? "critical"
+                              : variant.state === "backorder"
+                                ? "warning"
+                                : "neutral"
+                        }
+                      >
+                        {INVENTORY_LABELS[variant.state]}
+                      </s-badge>
                     </s-table-cell>
                     <s-table-cell>
                       {variant.policy === "CONTINUE"

@@ -1,6 +1,17 @@
+import { scoreTone, issueTone } from "./health-colors";
 import { useState } from "react";
-import type { ProductHealth } from "../domain/catalog";
+import type { IssueCode, ProductHealth } from "../domain/catalog";
 
+const ISSUE_LABELS: Record<IssueCode, string> = {
+  description: "Description",
+  image: "Imagery",
+  alt: "Alt text",
+  lowStock: "Low stock",
+  outOfStock: "Out of stock",
+  backorder: "Selling without stock",
+  seoTitle: "SEO title",
+  seoDescription: "SEO description",
+};
 const PAGE_SIZE = 25;
 export function ProductHealthTable({
   products,
@@ -28,29 +39,35 @@ export function ProductHealthTable({
     (currentPage + 1) * PAGE_SIZE,
   );
   return (
-    <s-section heading="Product health">
+    <section
+      className="health-panel health-products"
+      id="product-health"
+      aria-labelledby="product-health-heading"
+    >
       <s-stack direction="block" gap="base">
-        <s-paragraph color="subdued">
-          Lowest scores first. Select a product for its StorePulse analysis.
-        </s-paragraph>
-        <div className="health-controls">
+        <div className="health-product-toolbar">
+          <h2 id="product-health-heading">Product health</h2>
           <s-search-field
             label="Search analyzed products"
-            placeholder="Search by product title or handle"
+            labelAccessibilityVisibility="exclusive"
+            placeholder="Search products…"
             value={query}
             onInput={(event) => {
               setQuery(event.currentTarget.value);
               setPage(0);
             }}
           />
-          <s-checkbox
-            label="Only products with issues"
-            checked={onlyIssues}
-            onChange={(event) => {
-              setOnlyIssues(event.currentTarget.checked);
-              setPage(0);
-            }}
-          />
+          <label className="sp-filter">
+            <input
+              type="checkbox"
+              checked={onlyIssues}
+              onChange={(event) => {
+                setOnlyIssues(event.currentTarget.checked);
+                setPage(0);
+              }}
+            />
+            Issues only
+          </label>
         </div>
         {visible.length ? (
           <s-table variant="auto">
@@ -77,13 +94,13 @@ export function ProductHealthTable({
                       )}
                       <div className="health-product-copy">
                         <span className="health-product-name">
-                          <s-link
+                          <a
+                            className="sp-product-link"
                             href={`/app/products/${product.id.split("/").pop()}`}
                           >
                             {product.title || "Untitled product"}
-                          </s-link>
+                          </a>
                         </span>
-                        <span className="health-muted">View analysis</span>
                       </div>
                     </div>
                   </s-table-cell>
@@ -93,43 +110,67 @@ export function ProductHealthTable({
                     </s-badge>
                   </s-table-cell>
                   <s-table-cell>
-                    <span className="health-table-score">
+                    <span
+                      className="health-table-score"
+                      data-tone={scoreTone(product.score)}
+                    >
                       {product.score} <span>/ 100</span>
                     </span>
                   </s-table-cell>
                   <s-table-cell>
-                    <div className="health-row-copy">
-                      <details className="health-disclosure">
-                        <summary>
-                          {product.issues.length
-                            ? `${product.issues.length} issue ${product.issues.length === 1 ? "type" : "types"}`
-                            : "No issues"}
-                        </summary>
-                        <s-paragraph>
-                          {product.issues.length
-                            ? product.issues
-                                .map((issue) => issue.label)
-                                .join(" · ")
-                            : "No issues in evaluated checks."}
-                        </s-paragraph>
-                        <s-paragraph>
-                          Inventory checked: {product.inventory.evaluated}/
-                          {product.inventory.total} variants.
-                        </s-paragraph>
-                      </details>
-                      <p className="health-muted">
-                        Coverage {product.evaluatedWeight}/100
-                      </p>
+                    <div className="health-issue-tags">
+                      {product.issues.length ? (
+                        product.issues.slice(0, 2).map((issue) => (
+                          <s-badge
+                            key={issue.code}
+                            tone={issueTone(issue.code)}
+                          >
+                            {ISSUE_LABELS[issue.code]}
+                          </s-badge>
+                        ))
+                      ) : (
+                        <span className="health-muted">No issues</span>
+                      )}
+                      {product.issues.length > 2 && (
+                        <span className="health-muted">
+                          +{product.issues.length - 2} more
+                        </span>
+                      )}
                     </div>
+                    <details className="health-disclosure health-table-detail">
+                      <summary>
+                        Details · {product.evaluatedWeight}/100 coverage
+                      </summary>
+                      <s-paragraph>
+                        {product.issues
+                          .map((issue) => issue.label)
+                          .join(" · ") || "No issues in evaluated checks."}
+                      </s-paragraph>
+                      <s-paragraph>
+                        Inventory checked: {product.inventory.evaluated}/
+                        {product.inventory.total} variants.
+                      </s-paragraph>
+                    </details>
                   </s-table-cell>
                   <s-table-cell>
-                    <s-link
-                      href={`${adminBase}/products/${product.id.split("/").pop()}`}
-                      target="_blank"
-                      accessibilityLabel={`Open ${product.title || "product"} in Shopify Admin (new tab)`}
-                    >
-                      Shopify Admin
-                    </s-link>
+                    <div className="health-table-actions">
+                      <a
+                        className="sp-analyze"
+                        href={`/app/products/${product.id.split("/").pop()}`}
+                        aria-label={`Analyze ${product.title || "product"} in StorePulse`}
+                      >
+                        Analyze <span aria-hidden="true">↗</span>
+                      </a>
+                      <a
+                        className="sp-admin-link"
+                        href={`${adminBase}/products/${product.id.split("/").pop()}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Open ${product.title || "product"} in Shopify Admin (new tab)`}
+                      >
+                        Shopify Admin ↗
+                      </a>
+                    </div>
                   </s-table-cell>
                 </s-table-row>
               ))}
@@ -165,6 +206,6 @@ export function ProductHealthTable({
           </s-stack>
         </div>
       </s-stack>
-    </s-section>
+    </section>
   );
 }

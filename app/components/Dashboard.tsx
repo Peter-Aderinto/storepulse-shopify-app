@@ -1,9 +1,9 @@
+import { StorePulseHeader } from "./StorePulseHeader";
 import { useNavigation, useRevalidator } from "react-router";
 import type { CatalogHealth } from "../domain/catalog";
 import { HealthOverview, NeedsAttention } from "./HealthOverview";
 import { ProductHealthTable } from "./ProductHealthTable";
 import { ScoreMethodology } from "./ScoreMethodology";
-import "../styles/dashboard.css";
 
 export type DashboardData =
   | {
@@ -21,25 +21,22 @@ export function Dashboard({ result }: { result: DashboardData }) {
   const navigation = useNavigation();
   const loading = revalidator.state !== "idle" || navigation.state !== "idle";
   return (
-    <s-page heading="StorePulse" inlineSize="large">
-      <s-button
-        slot="primary-action"
-        variant="primary"
-        loading={loading}
-        disabled={loading}
-        onClick={() => revalidator.revalidate()}
-      >
-        Refresh analysis
-      </s-button>
+    <s-page inlineSize="large">
       <div className="health-dashboard" aria-busy={loading}>
-        <div className="health-page-intro">
-          <s-paragraph>Store Health &amp; Growth Dashboard</s-paragraph>
+        <StorePulseHeader
+          title="StorePulse"
+          subtitle="Store Health & Growth Dashboard"
+          loading={loading}
+          onRefresh={() => revalidator.revalidate()}
+        />
+        <div className="sp-context-bar">
+          <span className="sp-current-view">Store health</span>
           <div role="status" aria-live="polite">
             {loading
               ? "Refreshing catalog…"
               : result.ok
-                ? `Analysis complete: ${result.health.analyzedCount} products checked.`
-                : "Catalog analysis unavailable."}
+                ? `${result.health.analyzedCount} products analyzed`
+                : "Analysis unavailable"}
           </div>
         </div>
         {result.ok === false ? (
@@ -82,11 +79,13 @@ export function Dashboard({ result }: { result: DashboardData }) {
               </s-section>
             ) : (
               <>
-                <NeedsAttention health={result.health} />
-                <ProductHealthTable
-                  products={result.health.products}
-                  adminBase={result.adminBase}
-                />
+                <div className="health-workspace">
+                  <NeedsAttention health={result.health} />
+                  <ProductHealthTable
+                    products={result.health.products}
+                    adminBase={result.adminBase}
+                  />
+                </div>
               </>
             )}
             {result.health.analyzedCount > 0 && (

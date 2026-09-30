@@ -1,3 +1,9 @@
+import type { LinksFunction } from "react-router";
+import dashboardStyles from "./styles/dashboard.css?url";
+export const links: LinksFunction = () => [
+  { rel: "stylesheet", href: dashboardStyles },
+  { rel: "icon", type: "image/svg+xml", href: "/brand/storepulse-mark.svg" },
+];
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 
 export default function App() {

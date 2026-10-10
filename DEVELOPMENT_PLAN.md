@@ -2,7 +2,7 @@
 
 ## Scope and current baseline
 
-StorePulse is a full-stack Shopify merchant app for understanding catalog and product health. Phases 1 and 2 implement an authenticated, read-only catalog health dashboard and individual product analysis on the official Shopify React Router TypeScript scaffold. Phase 3 implements merchant-controlled image alt-text remediation; Phase 4 adds authenticated product-update metadata; Phases 5–8 remain planned. See [scoring methodology](docs/SCORING.md) for exact rules, data sources, scan limits, and validation.
+StorePulse is a full-stack Shopify merchant app for understanding catalog and product health. Phases 1 and 2 implement an authenticated, read-only catalog health dashboard and individual product analysis on the official Shopify React Router TypeScript scaffold. Phase 3 implements merchant-controlled image alt-text remediation; Phase 4 adds authenticated product-update metadata; Phase 5 adds explicit custom SEO remediation; Phases 6–8 remain planned. See [scoring methodology](docs/SCORING.md) for exact rules, data sources, scan limits, and validation.
 
 - Development environment: WSL Ubuntu.
 - Runtime: Node 24.15.0 and npm 11.12.1; no runtime upgrade required.
@@ -49,15 +49,17 @@ Structured feedback handles Shopify user errors, permissions, throttling, networ
 
 See [remediation documentation](docs/REMEDIATION.md) for reads versus writes, shared-file effects, security, limitations, and acceptance steps.
 
-### Phase 4: Product-update webhook synchronization — implemented, pending review
+### Phase 4: Product-update webhook synchronization — implemented
 
 App configuration subscribes to `products/update` with a minimal payload. The official Shopify webhook authenticator verifies requests; a short transaction stores shop/product activity metadata and seven-day deduplication keys. Product timestamps never regress on out-of-order delivery. Unknown/uninstalled shops are ignored, database failures return retryable responses, and uninstall atomically removes shop metadata and sessions.
 
 The dashboard exposes a subtle latest-receipt timestamp, explicitly separate from the authoritative analysis snapshot. Product Analysis and remediation remain unchanged. No catalog replica, background queue, browser push, or automatic mutation is introduced. See [synchronization documentation](docs/SYNCHRONIZATION.md) for retention, security, failure handling, and limitations.
 
-### Phase 5: UI/UX polish, loading, error and empty states
+### Phase 5: SEO remediation — implemented, pending merchant review
 
-Refine navigation, responsive layouts, scan progress, loading feedback, recoverable errors, empty catalogs, and partial-data states. Check keyboard navigation, labels, focus management, contrast, and clear merchant-facing language.
+Custom SEO title/description evidence now displays current values and opens an explicit Edit SEO / Save SEO form. A shared authenticated remediation dispatcher preserves the Phase 3 alt-text workflow. The new July 2026 `productUpdate` operation sends only product identity and both SEO values, using existing `write_products`. Server/client validation trims edited values, enforces documented editor limits, rejects accidental clearing, and requires explicit Clear controls. Unchanged sibling values are preserved; stale edits and duplicate submissions are guarded.
+
+Authoritative rereads and loader revalidation reuse the unchanged completeness scoring and recommendations. Shopify product-update webhooks remain metadata-only. No automatic optimization, AI content, bulk edits, unrelated field changes, dependency updates, or broad UI redesign is added. Final visual polish remains future work. See [SEO remediation details](docs/REMEDIATION.md#custom-seo-remediation-phase-5).
 
 ### Phase 6: Testing and QA
 
@@ -134,7 +136,7 @@ Shopify template-maintenance workflows and upstream contribution metadata are ex
 
 - Accepted UI commit: `f49e381` (`style: refine StorePulse branding and health colors`).
 - Phase 3 commit and Phase 4 rollback checkpoint: `fbd917a4ddc79fc41e616fe46f269d3beb0d9082` (`feat: add Shopify catalog remediation`). Both were pushed to `origin/main`; the working tree was clean before Phase 4.
-- Phase 4 remains uncommitted for Peter's review.
+- Phase 4 was subsequently approved, validated again and published; see the Phase 5 checkpoint below.
 
 - All 135 tests pass (101 existing plus 34 Phase 4 tests); typecheck, lint, and production build pass. The additive migration and Prisma schema validate; existing sessions are preserved.
 - Shopify app configuration and the changed Polaris dashboard component pass validation. No new GraphQL operations or scopes were required.
@@ -143,3 +145,12 @@ Shopify template-maintenance workflows and upstream contribution metadata are ex
 - Shopify delivered the real authenticated product-update webhook; exactly one receipt and one product metadata row were recorded. No additional event activity or mutation loop was observed.
 - Isolated Chromium checks using fresh Shopify data pass for dashboard receipt-versus-analysis messaging, refresh/navigation, updated detail evidence, and responsive layouts. This is not a claim of authenticated Shopify Admin browser inspection; Peter's embedded visual review remains manual.
 - Existing React Router future-flag advisories remain; no environment/dependency upgrades were made.
+
+## Phase 5 checkpoint and validation
+
+- Phase 4 commit and Phase 5 rollback checkpoint: `ed9a066722725ed2d009be80bced4c3417ade062` (`feat: add product webhook synchronization`). It was pushed to `origin/main`, verified on GitHub, and the working tree was clean before Phase 5.
+- All 172 tests pass (135 existing plus 37 new SEO tests); typecheck, lint, and build pass. The new GraphQL mutation validates against July 2026, and affected Polaris components pass validation. The native editor is additionally checked by TypeScript, lint, and browser interaction tests.
+- Isolated browser checks pass for current values, validation, deliberate clearing/sibling preservation, retained failure input, duplicate prevention, cancel, alt-text regression, authoritative scoring, and desktop/mobile layouts.
+- Phase 5 remains uncommitted for Peter's review.
+
+- The single authorized demo SEO save succeeded: SEO 0/20 → 20/20, Product Health 60 → 80, issue types 3 → 1, SEO recommendations 2 → 0. Independent detail/catalog reads verified the result and unchanged non-SEO fields/other products. See remediation documentation for the webhook observation limitation.

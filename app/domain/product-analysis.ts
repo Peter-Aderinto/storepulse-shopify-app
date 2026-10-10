@@ -142,6 +142,7 @@ export function analyzeProductDetail(product: Product) {
     categories,
     images,
     variants,
+    seo: { ...product.seo },
     completeness: {
       descriptionPresent,
       seoTitlePresent: seo.titlePresent,

@@ -1,4 +1,6 @@
-import { handleAltTextAction } from "../services/alt-text.server";
+import { saveAltTextFromForm } from "../services/alt-text.server";
+import { saveSeoFromForm } from "../services/seo.server";
+import { handleRemediationAction } from "../services/remediation-action.server";
 import type {
   ActionFunctionArgs,
   HeadersFunction,
@@ -86,11 +88,16 @@ export const headers: HeadersFunction = (args) => {
 };
 
 export const action = ({ request, params }: ActionFunctionArgs) =>
-  handleAltTextAction(request, params.productId, async (request) => {
-    const { admin, session } = await authenticate.admin(request);
-    return {
-      shop: session.shop,
-      graphql: (query, options) =>
-        admin.graphql(query, { ...options, tries: 1 }),
-    };
-  });
+  handleRemediationAction(
+    request,
+    params.productId,
+    async (request) => {
+      const { admin, session } = await authenticate.admin(request);
+      return {
+        shop: session.shop,
+        graphql: (query, options) =>
+          admin.graphql(query, { ...options, tries: 1 }),
+      };
+    },
+    { "save-alt-text": saveAltTextFromForm, "save-seo": saveSeoFromForm },
+  );

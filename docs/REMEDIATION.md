@@ -1,6 +1,6 @@
-# Image alt-text remediation
+# StorePulse remediation
 
-StorePulse's first write operation is a merchant-confirmed image alt-text update. It does not automatically fix products, generate content, or modify inventory, descriptions, SEO, or image sources.
+StorePulse supports explicit merchant saves for image accessibility (alt text) and custom SEO (title and description). It does not automatically optimize products or generate content. Product descriptions, inventory, prices, handles, and image sources are not editable through these workflows. The following image workflow was introduced in Phase 3; SEO is detailed below.
 
 ## Read and write boundaries
 
@@ -42,3 +42,47 @@ Conflict detection is a preflight check, not an atomic compare-and-swap: an exte
 `npm test` retains the original 69 tests and adds 32 remediation tests. Coverage includes trimming/limits, malformed IDs, missing product/file, cross-product image rejection, readiness, stale edits, successful single-field writes, idempotent no-ops, concurrent saves, safe user/GraphQL/HTTP/network errors, authentication rejection/redirects, unverified rereads, route/session authority, and score/recommendation reanalysis. No test uses real store credentials or writes merchant data.
 
 Also run `npm run typecheck`, `npm run lint`, `npm run build`, July 2026 GraphQL schema validation for both new operations, and Polaris component validation. Browser and live-store acceptance results must be reported separately from these checks.
+
+## Custom SEO remediation (Phase 5)
+
+### API and scope
+
+The supported July 2026 operation is [`productUpdate`](https://shopify.dev/docs/api/admin-graphql/2026-07/mutations/productUpdate) with [`ProductUpdateInput.seo`](https://shopify.dev/docs/api/admin-graphql/2026-07/input-objects/ProductUpdateInput). [`SEOInput`](https://shopify.dev/docs/api/admin-graphql/2026-07/input-objects/SEOInput) contains title and description strings. The existing `write_products` scope is sufficient; no permission/configuration change is added.
+
+The mutation sends only the product ID and both custom SEO values. When editing one field, the current unchanged sibling is explicitly preserved rather than relying on nested-field omission semantics. The server verifies both existing values before writing, checks returned identity/values and `userErrors`, then rereads the product. No product title, description body, inventory, price, tag, handle, or status input is sent.
+
+### Editing and deliberate clearing
+
+The evidence section shows actual Shopify custom values, including Not set states, and the editor initializes from the latest loaded values. Save is explicit; Cancel does not write. Edited values are trimmed, validated and never truncated. StorePulse uses 70/320-character editor limits based on [Shopify's product SEO field documentation](https://help.shopify.com/en/manual/products/import-export/using-csv). The GraphQL SEOInput reference itself declares strings without documenting a universal numeric API cap; these limits are identified as editor limits. Unchanged legacy values, including longer ones, are preserved exactly when editing the sibling. Shopify can still return a validation error.
+
+Removing an existing value with an ordinary blank/whitespace submission is rejected. The merchant must select the corresponding Clear checkbox, then Save SEO. Clearing submits an explicit empty string; the other field is preserved. Both may be cleared deliberately. A field that was already unset may remain unset when saving the other field. A no-change request is a read-verified no-op. Invisible-only new values are rejected.
+
+[Shopify's product clearing guidance](https://community.shopify.dev/t/page-article-blog-s-seo-data-cannot-be-set-to-empty-or-null/19540/2) supports empty-string SEO values for products. Blank/null results are normalized as unset when verifying a clear. Storefront metadata can fall back to product/theme defaults; clearing custom SEO does not mean the page necessarily has no search metadata. StorePulse's existing completeness check still marks the custom field missing. Search rankings and search-engine display text are not guaranteed.
+
+### Shared security and refresh flow
+
+Both alt-text and SEO forms use the same authenticated POST dispatcher. Authentication runs before form parsing or intent selection; only explicit supported intents are dispatched. Product identity comes from the route and the GraphQL client/shop from the existing Shopify session. Unexpected posted shop/product authority is ignored, and a fresh same-shop product read must succeed before a write. Access tokens, persistence and GraphQL mutation code stay server-side.
+
+The SEO service reuses the existing GraphQL transport, error normalization, fully paginated product reads, and analysis engine. Duplicate browser submits are blocked; a shop/product process-local lock prevents simultaneous SEO saves. Stale SEO values cause a conflict rather than overwriting another edit. SDK `tries: 1` prevents automatic mutation retries. This is not a distributed lock or atomic compare-and-swap; external edits between the preflight and mutation remain a race limitation.
+
+Success reads Shopify again, then React Router revalidates the existing loader. No score is edited client-side. If Shopify acknowledged the mutation but a reread fails or disagrees, feedback explicitly says the result is not yet verified. Failures retain input where the page remains available, propagate authentication responses, and show safe authored messages without exposing upstream details. After uncertain network outcomes, refresh before retrying.
+
+Webhook handlers remain metadata-only. An SEO save may cause a normal `products/update` event, but receipt processing has no mutation client and never invokes remediation. Returning to Store health or refreshing it retrieves current catalog data.
+
+### Verification and merchant review
+
+All 135 prior tests are retained; 37 new mocked tests cover individual/both field updates, current evidence values, trimming/limits, deliberate clearing, sibling preservation, legacy values, IDs/shop authority, no-op/stale/duplicate behavior, permissions, user/GraphQL/network errors, authentication redirects, uncertain rereads, reanalysis and webhook compatibility. No automated test writes real Shopify data.
+
+The isolated browser harness exercises the actual dispatcher and services with mocked APIs: loaded values, blank/over-limit rejection, retained failure input, one save on double click, clearing, cancellation, alt-text regression, score refresh, and responsive layouts. Live verification is a separate single authorized fictional-product save; it does not test clearing by repeatedly changing the store.
+
+For manual acceptance, refresh StorePulse in Shopify Admin, open the demo product, inspect Content & custom SEO evidence, and choose Edit SEO. Confirm its current values load, inspect character counts and the explicit Clear controls, then Cancel without an extra test write. If you deliberately make a further edit, click Save SEO once and verify fresh evidence, recommendations, category/overall scores and normal webhook receipt. Phase 5 remains uncommitted until Peter approves it.
+
+### Controlled live verification — 2026-09-30
+
+One authorized save used the actual SEO remediation service for the approved fictional VelvetBloom Rose Facial Oil product. Both custom SEO fields were previously unset. The saved title was “VelvetBloom Rose Facial Oil | Demo Skincare”; the saved description was “Explore VelvetBloom Rose Facial Oil, a fictional skincare product created for the StorePulse development demo.”
+
+Independent Shopify detail and catalog reads confirmed these exact values: SEO points 0/20 → 20/20, Product Health 60/100 → 80/100, issue types 3 → 1, and SEO recommendations 2 → 0. Dashboard analysis also returned 80. Comparisons confirmed unchanged non-SEO fields and other products in the catalog snapshot. Exactly one mutation was attempted; clearing and other failure paths were tested with mocks, not extra live writes.
+
+A new live webhook receipt was not observed during the verification window. The existing development tunnel hostname failed DNS resolution while the local server remained running. Live receipt handling for this particular SEO save therefore remains unverified; Phase 4's earlier live verification and Phase 5's mocked compatibility checks are separate evidence. The unchanged webhook handler only authenticates and records synchronization metadata, has no remediation call, and cannot initiate a mutation loop. No additional product mutation was made to force another event.
+
+The development connection was restarted safely afterward. The new public tunnel serves the app (HTTP 200) and rejects an unauthenticated webhook request (HTTP 400); the Shopify CLI reports Ready for Mastersales / pressycosmetics. This connectivity check is not a signed Shopify delivery test. The server remains running for merchant review.

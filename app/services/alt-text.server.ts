@@ -1,4 +1,9 @@
 import {
+  handleRemediationAction,
+  type RemediationAuthenticator,
+  type RemediationContext,
+} from "./remediation-action.server.ts";
+import {
   validateAltText,
   validMediaId,
   type AltTextResult,
@@ -194,47 +199,29 @@ export async function updateImageAltText({
   }
 }
 
-// Injection keeps framework authentication at the boundary and makes rejection behavior testable.
-export async function handleAltTextAction(
-  request: Request,
-  productId: string | undefined,
-  authenticate: (
-    request: Request,
-  ) => Promise<{ shop: string; graphql: GraphqlClient }>,
-) {
-  const { shop, graphql } = await authenticate(request);
-  const headers = { "Cache-Control": "private, no-store" };
-  if (request.method !== "POST")
-    return Response.json(
-      failure("method", "Use Save alt text to update an image."),
-      { status: 405, headers },
-    );
-  let form: FormData;
-  try {
-    form = await request.formData();
-  } catch {
-    return Response.json(
-      failure(
-        "invalid_input",
-        "The save request could not be read. Please try again.",
-      ),
-      { status: 400, headers },
-    );
-  }
-  if (form.get("intent") !== "save-alt-text")
-    return Response.json(failure("invalid_input", "Unknown product action."), {
-      status: 400,
-      headers,
-    });
-  const result = await updateImageAltText({
-    graphql,
+export const saveAltTextFromForm = ({
+  shop,
+  graphql,
+  productId,
+  form,
+  signal,
+}: RemediationContext) =>
+  updateImageAltText({
     shop,
+    graphql,
     productId,
     mediaId: form.get("mediaId"),
     altText: form.get("altText"),
     expectedAlt: form.get("expectedAlt"),
-    signal: request.signal,
+    signal,
   });
-  // Expected validation failures return action data so loader revalidation remains reliable.
-  return Response.json(result, { headers });
-}
+
+// Retained as a narrow boundary for the existing alt-text integration tests.
+export const handleAltTextAction = (
+  request: Request,
+  productId: string | undefined,
+  authenticate: RemediationAuthenticator,
+) =>
+  handleRemediationAction(request, productId, authenticate, {
+    "save-alt-text": saveAltTextFromForm,
+  });

@@ -1,3 +1,4 @@
+import { SeoEditor } from "./SeoEditor";
 import { AltTextEditor } from "./AltTextEditor";
 import { useState } from "react";
 import type { ProductAnalysis } from "../domain/product-analysis";
@@ -38,6 +39,7 @@ export function ProductEvidence({ analysis }: { analysis: ProductAnalysis }) {
           Presence checks only. Blank custom SEO fields may use Shopify fallback
           metadata.
         </s-paragraph>
+        <SeoEditor productId={analysis.health.id} seo={analysis.seo} />
       </s-section>
       <s-section heading="Image evidence">
         {!analysis.images.length ? (
